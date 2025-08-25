@@ -1,0 +1,28 @@
+{
+    "name": "my-game-project",
+    "version": "1.0.0",
+    "description": "A simple TypeScript game project using a canvas rendering engine.",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "tsc",
+        "start": "npm run build && live-server --open=./index.html",
+        "dev": "concurrently \"tsc --watch\" \"live-server --open=./index.html\"",
+        "server": "ts-node server/server.ts",
+        "format": "prettier --write \"src/**/*.ts\""
+    },
+    "devDependencies": {
+        "@types/ws": "^8.18.1",
+        "concurrently": "^9.2.0",
+        "live-server": "^1.2.2",
+        "nodemon": "^3.1.10",
+        "prettier": "^3.6.2",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.2"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "ws": "^8.18.3"
+    }
+}

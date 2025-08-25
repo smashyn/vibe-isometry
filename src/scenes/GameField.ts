@@ -1,0 +1,176 @@
+import { drawIsoGrid } from '../utils/drawIsoGrid.js';
+import { drawLabel } from '../utils/drawLabel.js';
+import { gridToIso } from '../utils/isometric.js';
+import { Player } from '../entities/Player.js';
+import { EarthTile } from '../tiles/EarthTile.js';
+import { GrassTile } from '../tiles/GrassTile.js';
+import { StoneTile } from '../tiles/StoneTile.js';
+// Update the import path and extension if the file is actually TypeScript or has a different name
+import {
+    STATIC_DUNGEON_MAP,
+    STATIC_DUNGEON_WIDTH,
+    STATIC_DUNGEON_HEIGHT,
+    STATIC_DUNGEON_ROOMS,
+} from '../tiles/staticDungeon.js';
+import { Room, TileType } from '../tiles/generateDungeon.js';
+import { TileTextures } from '../tiles/TileTextures.js';
+
+function getTileByType(type: TileType, textures: TileTextures) {
+    switch (type) {
+        case 'earth':
+            return new EarthTile(textures);
+        case 'grass':
+            return new GrassTile(textures);
+        case 'stone':
+            return new StoneTile(textures);
+        default:
+            return null;
+    }
+}
+
+export class GameField {
+    private dungeon: TileType[][];
+    private dungeonWidth: number;
+    private dungeonHeight: number;
+    private rooms: Room[];
+
+    private earthTile: EarthTile;
+    private grassTile: GrassTile;
+    private stoneTile: StoneTile;
+
+    constructor(
+        private player: Player,
+        private showGrid: () => boolean,
+        private tileWidth: number,
+        private tileHeight: number,
+        private gridSize: number,
+        private textures: TileTextures,
+    ) {
+        this.dungeon = STATIC_DUNGEON_MAP;
+        this.dungeonWidth = STATIC_DUNGEON_WIDTH;
+        this.dungeonHeight = STATIC_DUNGEON_HEIGHT;
+        this.rooms = STATIC_DUNGEON_ROOMS;
+
+        this.earthTile = new EarthTile(this.textures);
+        this.grassTile = new GrassTile(this.textures);
+        this.stoneTile = new StoneTile(this.textures);
+
+        // Якщо є хоча б одна кімната — ставимо персонажа у центр першої кімнати
+        if (this.rooms.length > 0) {
+            const firstRoom = this.rooms[0];
+            const startX = Math.floor(firstRoom.x + firstRoom.w / 2);
+            const startY = Math.floor(firstRoom.y + firstRoom.h / 2);
+            this.player.x = startX;
+            this.player.y = startY;
+            (this.player as any).targetX = startX;
+            (this.player as any).targetY = startY;
+        }
+    }
+
+    public getTileTypeAt(gx: number, gy: number): TileType {
+        if (gx >= 0 && gx < this.dungeonWidth && gy >= 0 && gy < this.dungeonHeight) {
+            return this.dungeon[gy][gx];
+        }
+        return 'stone'; // все поза картою вважаємо стіною
+    }
+
+    render(ctx: CanvasRenderingContext2D, w: number, h: number) {
+        const gameFieldWidth = w * 0.65;
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, gameFieldWidth, h);
+        drawLabel(ctx, 'Ігрове поле', 20, 20);
+
+        // === Малюємо підземелля ===
+        const centerX = gameFieldWidth / 2;
+        const centerY = h / 2;
+
+        // Визначаємо межі видимих тайлів
+        const tilesX = Math.ceil(gameFieldWidth / this.tileWidth) + 8;
+        const tilesY = Math.ceil(h / this.tileHeight) + 8;
+        const minGX = Math.floor(this.player.x - tilesX / 2);
+        const maxGX = Math.ceil(this.player.x + tilesX / 2);
+        const minGY = Math.floor(this.player.y - tilesY / 2);
+        const maxGY = Math.ceil(this.player.y + tilesY / 2);
+
+        for (let gx = minGX; gx <= maxGX; gx++) {
+            for (let gy = minGY; gy <= maxGY; gy++) {
+                const type = this.getTileTypeAt(gx, gy);
+                let tile = null;
+                if (type === 'earth') tile = this.earthTile;
+                else if (type === 'grass') tile = this.grassTile;
+                else if (type === 'stone') tile = this.stoneTile;
+                if (!tile) continue;
+                // Всесвіт: координати тайлів не зміщуються з персонажем!
+                const { x: isoX, y: isoY } = gridToIso(
+                    gx,
+                    gy,
+                    centerX -
+                        (this.player.x * this.tileWidth) / 2 +
+                        (this.player.y * this.tileWidth) / 2,
+                    centerY -
+                        (this.player.x * this.tileHeight) / 2 -
+                        (this.player.y * this.tileHeight) / 2,
+                    this.tileWidth,
+                    this.tileHeight,
+                );
+                tile.render(ctx, isoX, isoY, this.tileWidth, this.tileHeight);
+            }
+        }
+
+        // Сітка (рухається з персонажем)
+        if (this.showGrid()) {
+            const centerX = gameFieldWidth / 2;
+            const centerY = h / 2;
+            const tilesX = Math.ceil(gameFieldWidth / this.tileWidth) + 8;
+            const tilesY = Math.ceil(h / this.tileHeight) + 8;
+            const minGX = Math.floor(this.player.x - tilesX / 2);
+            const maxGX = Math.ceil(this.player.x + tilesX / 2);
+            const minGY = Math.floor(this.player.y - tilesY / 2);
+            const maxGY = Math.ceil(this.player.y + tilesY / 2);
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 1;
+
+            for (let gx = minGX; gx <= maxGX; gx++) {
+                for (let gy = minGY; gy <= maxGY; gy++) {
+                    const { x: isoX, y: isoY } = gridToIso(
+                        gx - this.player.x,
+                        gy - this.player.y,
+                        centerX,
+                        centerY,
+                        this.tileWidth,
+                        this.tileHeight,
+                    );
+                    if (
+                        isoX + this.tileWidth / 2 >= 0 &&
+                        isoX - this.tileWidth / 2 <= gameFieldWidth &&
+                        isoY + this.tileHeight / 2 >= 0 &&
+                        isoY - this.tileHeight / 2 <= h
+                    ) {
+                        ctx.beginPath();
+                        ctx.moveTo(isoX, isoY - this.tileHeight / 2);
+                        ctx.lineTo(isoX + this.tileWidth / 2, isoY);
+                        ctx.lineTo(isoX, isoY + this.tileHeight / 2);
+                        ctx.lineTo(isoX - this.tileWidth / 2, isoY);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        // Гравець завжди в центрі (ромб)
+        // ctx.save();
+        // ctx.beginPath();
+        // ctx.moveTo(gameFieldWidth / 2, h / 2 - this.tileHeight / 2);
+        // ctx.lineTo(gameFieldWidth / 2 + this.tileWidth / 2, h / 2);
+        // ctx.lineTo(gameFieldWidth / 2, h / 2 + this.tileHeight / 2);
+        // ctx.lineTo(gameFieldWidth / 2 - this.tileWidth / 2, h / 2);
+        // ctx.closePath();
+        // ctx.fillStyle = 'red';
+        // ctx.fill();
+        // ctx.restore();
+    }
+}
