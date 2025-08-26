@@ -68,6 +68,34 @@ export class MainScene implements Scene {
                     this.player.attackAnimation.start(dir);
                     this.player.isAttacking = true;
                 }
+                // Визначаємо координати цільової клітини (наприклад, перед гравцем)
+                const dx =
+                    {
+                        up: 0,
+                        down: 0,
+                        left: -1,
+                        right: 1,
+                        'up-left': -1,
+                        'up-right': 1,
+                        'down-left': -1,
+                        'down-right': 1,
+                        none: 0,
+                    }[this.player.direction] ?? 0;
+                const dy =
+                    {
+                        up: -1,
+                        down: 1,
+                        left: 0,
+                        right: 0,
+                        'up-left': -1,
+                        'up-right': -1,
+                        'down-left': 1,
+                        'down-right': 1,
+                        none: 0,
+                    }[this.player.direction] ?? 0;
+                const targetX = Math.round(this.player.x + dx);
+                const targetY = Math.round(this.player.y + dy);
+                this.attackCell(targetX, targetY);
             }
         });
 
@@ -150,10 +178,10 @@ export class MainScene implements Scene {
         this.player.update(delta);
         this.player.updateAnimations(delta * 1000);
 
-        // Надсилаємо координати та напрямок на сервер
         const isMoving =
             Math.abs(this.player.x - (this.player as any).targetX) > 0.01 ||
             Math.abs(this.player.y - (this.player as any).targetY) > 0.01;
+
         this.net.sendMove(
             this.player.x,
             this.player.y,
@@ -161,6 +189,9 @@ export class MainScene implements Scene {
             isMoving,
             this.player.isAttacking,
             this.player.isRunAttacking,
+            this.player.isDead,
+            this.player.isHurt,
+            this.player.isDead ? this.player['deathDirection'] : undefined,
         );
     }
 
@@ -226,5 +257,9 @@ export class MainScene implements Scene {
         );
 
         this.exampleButton.render(ctx);
+    }
+
+    attackCell(targetX: number, targetY: number) {
+        this.net.sendAttack(targetX, targetY);
     }
 }

@@ -6,6 +6,9 @@ export type PlayerNetData = {
     isMoving?: boolean;
     isAttacking?: boolean;
     isRunAttacking?: boolean;
+    isDead?: boolean;
+    isHurt?: boolean;
+    deathDirection?: string;
 };
 
 type PlayersUpdate = {
@@ -92,6 +95,9 @@ export class PlayerNetworkClient {
         isMoving?: boolean,
         isAttacking?: boolean,
         isRunAttacking?: boolean,
+        isDead?: boolean,
+        isHurt?: boolean,
+        deathDirection?: string,
     ) {
         if (this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(
@@ -103,6 +109,21 @@ export class PlayerNetworkClient {
                     isMoving,
                     isAttacking,
                     isRunAttacking,
+                    isDead,
+                    isHurt,
+                    deathDirection,
+                }),
+            );
+        }
+    }
+
+    sendAttack(targetX: number, targetY: number) {
+        if (this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(
+                JSON.stringify({
+                    type: 'attack',
+                    targetX,
+                    targetY,
                 }),
             );
         }

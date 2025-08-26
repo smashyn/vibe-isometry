@@ -1,4 +1,5 @@
 import { AttackDirection } from './PlayerAttackAnimation';
+import { spriteConfig } from '../config/spriteConfig.js';
 
 export type RunAttackDirection = 'down' | 'left' | 'right' | 'up';
 
@@ -26,7 +27,7 @@ export class PlayerRunAttackAnimation {
         this.sprite = new Image();
         this.loaded = new Promise<void>((resolve) => {
             this.sprite.onload = () => resolve();
-            this.sprite.src = '/assets/Swordsman_lvl1_Run_Attack_without_shadow.png';
+            this.sprite.src = spriteConfig.playerRunAttack; // використання конфігу
         });
         this.duration = this.frameDuration * this.framesPerRow;
     }

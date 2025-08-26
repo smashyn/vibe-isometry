@@ -1,64 +1,53 @@
-import { RunAttackDirection } from './PlayerRunAttackAnimation';
 import { spriteConfig } from '../config/spriteConfig.js';
 
-export type AttackDirection = 'down' | 'left' | 'right' | 'up';
+export type DeathDirection = 'down' | 'left' | 'right' | 'up';
 
-export class PlayerAttackAnimation {
+export class PlayerDeathAnimation {
     private sprite: HTMLImageElement;
-    private frameWidth = 64;
-    private frameHeight = 64;
-    private framesPerRow = 8;
-    private directions: Record<AttackDirection, number> = {
+    public loaded: Promise<void>;
+    public frameWidth = 64; // підставте реальну ширину кадру
+    public frameHeight = 64; // підставте реальну висоту кадру
+    public framesPerRow = 7;
+    public rows = 4;
+    public frameDuration = 100; // мс на кадр
+    public duration = this.frameDuration * this.framesPerRow;
+
+    private currentFrame = 0;
+    private frameTime = 0;
+
+    private directions: Record<DeathDirection, number> = {
         down: 0,
         left: 1,
         right: 2,
         up: 3,
     };
-    private currentFrame = 0;
-    private frameTime = 0;
-    private frameDuration = 80; // ms на кадр (12.5 fps)
-    public loaded: Promise<void>;
-    public playing = false;
-    public finished = false;
-    private lastDirection: AttackDirection = 'down';
-    public duration: number; // тривалість анімації в мілісекундах
 
     constructor() {
         this.sprite = new Image();
         this.loaded = new Promise<void>((resolve) => {
             this.sprite.onload = () => resolve();
-            this.sprite.src = spriteConfig.playerAttack; // використання конфігу
+            this.sprite.src = spriteConfig.playerDeath;
         });
-        this.duration = this.frameDuration * this.framesPerRow; // наприклад
-    }
-
-    start(direction: AttackDirection) {
-        this.playing = true;
-        this.finished = false;
-        this.currentFrame = 0;
-        this.frameTime = 0;
-        this.lastDirection = direction;
     }
 
     update(deltaMs: number) {
-        if (!this.playing) return;
         this.frameTime += deltaMs;
-        if (this.frameTime >= this.frameDuration) {
+        if (this.frameTime >= this.frameDuration && this.currentFrame < this.framesPerRow - 1) {
             this.currentFrame++;
             this.frameTime = 0;
-            if (this.currentFrame >= this.framesPerRow) {
-                this.currentFrame = this.framesPerRow - 1;
-                this.playing = false;
-                this.finished = true;
-            }
         }
+    }
+
+    reset() {
+        this.currentFrame = 0;
+        this.frameTime = 0;
     }
 
     draw(
         ctx: CanvasRenderingContext2D,
         x: number,
         y: number,
-        direction: AttackDirection = this.lastDirection,
+        direction: DeathDirection,
         scale: number = 1,
     ) {
         const row = this.directions[direction];
@@ -82,12 +71,12 @@ export class PlayerAttackAnimation {
         ctx: CanvasRenderingContext2D,
         x: number,
         y: number,
-        direction: AttackDirection | RunAttackDirection,
+        direction: DeathDirection,
         scale: number,
         timeMs: number,
     ) {
         const row = this.directions[direction];
-        const frameIndex = Math.floor(timeMs / this.frameDuration) % this.framesPerRow;
+        let frameIndex = Math.min(Math.floor(timeMs / this.frameDuration), this.framesPerRow - 1);
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(
@@ -102,12 +91,5 @@ export class PlayerAttackAnimation {
             this.frameHeight * scale,
         );
         ctx.restore();
-    }
-
-    reset() {
-        this.currentFrame = 0;
-        this.frameTime = 0;
-        this.playing = false;
-        this.finished = false;
     }
 }

@@ -7,6 +7,8 @@ import {
     PlayerRunAttackAnimation,
     RunAttackDirection,
 } from '../sprites/PlayerRunAttackAnimation.js';
+import { PlayerDeathAnimation, DeathDirection } from '../sprites/PlayerDeathAnimation.js';
+import { PlayerHurtAnimation, HurtDirection } from '../sprites/PlayerHurtAnimation.js';
 
 type Direction =
     | 'up'
@@ -55,11 +57,19 @@ export class Player implements Scene {
     public attackAnimation = new PlayerAttackAnimation();
     /** Анімація атаки під час бігу */
     public runAttackAnimation = new PlayerRunAttackAnimation();
+    public deathAnimation = new PlayerDeathAnimation();
+    public hurtAnimation = new PlayerHurtAnimation();
 
     /** Чи зараз виконується атака */
     public isAttacking = false;
     /** Чи зараз виконується атака під час бігу */
     public isRunAttacking = false;
+    public isDead = false;
+    private deathTime = 0;
+    public isHurt = false;
+    private hurtTime = 0;
+
+    private deathDirection: DeathDirection = 'down';
 
     /**
      * Конструктор. Приймає функцію для отримання типу тайла за координатами.
@@ -73,6 +83,20 @@ export class Player implements Scene {
             canvas.addEventListener('mouseleave', this.onMouseUp);
             canvas.addEventListener('mousemove', this.onMouseMove);
         }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyD' && !this.isDead) {
+                this.isDead = true;
+                this.deathTime = 0;
+                this.deathAnimation.reset();
+                this.deathDirection = this.getDeathDirection(); // зберігаємо напрямок смерті
+            }
+            if (e.code === 'KeyH' && !this.isHurt && !this.isDead) {
+                this.isHurt = true;
+                this.hurtTime = 0;
+                this.hurtAnimation.reset();
+            }
+        });
     }
 
     /**
@@ -175,6 +199,23 @@ export class Player implements Scene {
      * @param delta Час з моменту останнього оновлення (секунди)
      */
     update(delta: number): void {
+        if (this.isDead) {
+            this.deathTime += delta * 1000;
+            this.deathAnimation.update(delta * 1000);
+            return;
+        }
+        if (this.isHurt) {
+            this.hurtTime += delta * 1000;
+            this.hurtAnimation.update(delta * 1000);
+            // Коли анімація завершилась, скидаємо стан
+            if (this.hurtTime > this.hurtAnimation.duration) {
+                this.isHurt = false;
+                this.hurtTime = 0;
+                this.hurtAnimation.reset();
+            }
+            return;
+        }
+
         // Якщо мишка не натиснута — не рухаємо персонажа, координати фіксуємо до цілих
         if (!this.mouseDown) {
             this.x = Math.round(this.x);
@@ -261,6 +302,8 @@ export class Player implements Scene {
         this.idleAnimation.update(deltaMs);
         this.attackAnimation.update(deltaMs);
         this.runAttackAnimation.update(deltaMs);
+        this.deathAnimation.update(deltaMs);
+        this.hurtAnimation.update(deltaMs);
 
         if (this.attackAnimation.finished) {
             this.attackAnimation.reset();
@@ -281,6 +324,8 @@ export class Player implements Scene {
             this.idleAnimation.loaded,
             this.attackAnimation.loaded,
             this.runAttackAnimation.loaded,
+            this.deathAnimation.loaded,
+            this.hurtAnimation.loaded,
         ]);
     }
 
@@ -294,6 +339,17 @@ export class Player implements Scene {
         direction: RunDirection | IdleDirection | AttackDirection | RunAttackDirection,
         isMoving: boolean,
     ) {
+        if (this.isDead) {
+            await this.deathAnimation.loaded;
+            this.deathAnimation.drawFrame(ctx, x, y, this.getDeathDirection(), 1, this.deathTime);
+            return;
+        }
+        if (this.isHurt) {
+            await this.hurtAnimation.loaded;
+            this.hurtAnimation.drawFrame(ctx, x, y, this.getHurtDirection(), 1, this.hurtTime);
+            return;
+        }
+
         if (this.runAttackAnimation.playing) {
             this.runAttackAnimation.draw(ctx, x, y, direction as RunAttackDirection, 1);
         } else if (this.attackAnimation.playing) {
@@ -302,6 +358,30 @@ export class Player implements Scene {
             this.runAnimation.draw(ctx, x, y, direction as RunDirection, 1);
         } else {
             this.idleAnimation.draw(ctx, x, y, direction as IdleDirection, 1);
+        }
+    }
+
+    private getDeathDirection(): DeathDirection {
+        return this.deathDirection;
+    }
+
+    private getHurtDirection(): HurtDirection {
+        // Визначте напрямок hurt за поточним напрямком гравця
+        switch (this.direction) {
+            case 'up':
+            case 'up-left':
+            case 'up-right':
+                return 'up';
+            case 'down':
+            case 'down-left':
+            case 'down-right':
+                return 'down';
+            case 'left':
+                return 'left';
+            case 'right':
+                return 'right';
+            default:
+                return 'down';
         }
     }
 

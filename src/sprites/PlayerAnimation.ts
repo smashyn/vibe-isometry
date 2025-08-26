@@ -1,3 +1,5 @@
+import { spriteConfig } from '../config/spriteConfig.js';
+
 export type RunDirection = 'down' | 'left' | 'right' | 'up';
 
 export class PlayerAnimation {
@@ -18,9 +20,9 @@ export class PlayerAnimation {
 
     constructor() {
         this.sprite = new Image();
-        this.loaded = new Promise<void>(resolve => {
+        this.loaded = new Promise<void>((resolve) => {
             this.sprite.onload = () => resolve();
-            this.sprite.src = '/assets/Swordsman_lvl1_Run_without_shadow.png';
+            this.sprite.src = spriteConfig.playerRun; // використання конфігу
         });
     }
 
@@ -37,17 +39,21 @@ export class PlayerAnimation {
         x: number,
         y: number,
         direction: RunDirection,
-        scale: number = 1
+        scale: number = 1,
     ) {
         const row = this.directions[direction];
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(
             this.sprite,
-            this.currentFrame * this.frameWidth, row * this.frameHeight,
-            this.frameWidth, this.frameHeight,
-            x - (this.frameWidth * scale) / 2, y - (this.frameHeight * scale) / 2,
-            this.frameWidth * scale, this.frameHeight * scale
+            this.currentFrame * this.frameWidth,
+            row * this.frameHeight,
+            this.frameWidth,
+            this.frameHeight,
+            x - (this.frameWidth * scale) / 2,
+            y - (this.frameHeight * scale) / 2,
+            this.frameWidth * scale,
+            this.frameHeight * scale,
         );
         ctx.restore();
     }

@@ -1,3 +1,5 @@
+import { spriteConfig } from '../config/spriteConfig.js';
+
 export type IdleDirection = 'down' | 'left' | 'right' | 'up';
 
 export class PlayerIdleAnimation {
@@ -18,9 +20,9 @@ export class PlayerIdleAnimation {
 
     constructor() {
         this.sprite = new Image();
-        this.loaded = new Promise<void>(resolve => {
+        this.loaded = new Promise<void>((resolve) => {
             this.sprite.onload = () => resolve();
-            this.sprite.src = '/assets/Swordsman_lvl1_Idle_without_shadow.png';
+            this.sprite.src = spriteConfig.playerIdle; // використання конфігу
         });
     }
 
@@ -37,17 +39,21 @@ export class PlayerIdleAnimation {
         x: number,
         y: number,
         direction: IdleDirection,
-        scale: number = 1
+        scale: number = 1,
     ) {
         const row = this.directions[direction];
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(
             this.sprite,
-            this.currentFrame * this.frameWidth, row * this.frameHeight,
-            this.frameWidth, this.frameHeight,
-            x - (this.frameWidth * scale) / 2, y - (this.frameHeight * scale) / 2,
-            this.frameWidth * scale, this.frameHeight * scale
+            this.currentFrame * this.frameWidth,
+            row * this.frameHeight,
+            this.frameWidth,
+            this.frameHeight,
+            x - (this.frameWidth * scale) / 2,
+            y - (this.frameHeight * scale) / 2,
+            this.frameWidth * scale,
+            this.frameHeight * scale,
         );
         ctx.restore();
     }

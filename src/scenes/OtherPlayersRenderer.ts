@@ -6,41 +6,41 @@ import {
     PlayerRunAttackAnimation,
     RunAttackDirection,
 } from '../sprites/PlayerRunAttackAnimation.js';
+import { PlayerDeathAnimation, DeathDirection } from '../sprites/PlayerDeathAnimation.js';
+import { PlayerHurtAnimation, HurtDirection } from '../sprites/PlayerHurtAnimation.js';
 
 type AnimationState = {
-    attackFrame: number;
     attackTime: number;
-    runAttackFrame: number;
     runAttackTime: number;
+    deathTime: number;
+    hurtTime: number;
+    lastIsAttacking: boolean;
+    lastIsRunAttacking: boolean;
+    lastIsDead: boolean;
+    lastIsHurt: boolean;
 };
 
 export class OtherPlayersRenderer {
-    private runAnimation: PlayerAnimation;
-    private idleAnimation: PlayerIdleAnimation;
-    private attackAnimation: PlayerAttackAnimation;
-    private runAttackAnimation: PlayerRunAttackAnimation;
+    private runAnimation = new PlayerAnimation();
+    private idleAnimation = new PlayerIdleAnimation();
+    private attackAnimation = new PlayerAttackAnimation();
+    private runAttackAnimation = new PlayerRunAttackAnimation();
+    private deathAnimation = new PlayerDeathAnimation();
+    private hurtAnimation = new PlayerHurtAnimation();
 
-    private runLoaded: Promise<void>;
-    private idleLoaded: Promise<void>;
-    private attackLoaded: Promise<void>;
-    private runAttackLoaded: Promise<void>;
+    private runLoaded = this.runAnimation.loaded;
+    private idleLoaded = this.idleAnimation.loaded;
+    private attackLoaded = this.attackAnimation.loaded;
+    private runAttackLoaded = this.runAttackAnimation.loaded;
+    private deathLoaded = this.deathAnimation.loaded;
+    private hurtLoaded = this.hurtAnimation.loaded;
 
     private animationStates = new Map<string, AnimationState>();
 
     constructor(
         private tileWidth: number,
         private tileHeight: number,
-    ) {
-        this.runAnimation = new PlayerAnimation();
-        this.idleAnimation = new PlayerIdleAnimation();
-        this.attackAnimation = new PlayerAttackAnimation();
-        this.runAttackAnimation = new PlayerRunAttackAnimation();
-
-        this.runLoaded = this.runAnimation.loaded;
-        this.idleLoaded = this.idleAnimation.loaded;
-        this.attackLoaded = this.attackAnimation.loaded;
-        this.runAttackLoaded = this.runAttackAnimation.loaded;
-    }
+    ) {}
 
     /**
      * Малює інших гравців на карті з анімацією та підтримкою різних станів.
@@ -59,20 +59,26 @@ export class OtherPlayersRenderer {
             this.idleLoaded,
             this.attackLoaded,
             this.runAttackLoaded,
+            this.deathLoaded,
+            this.hurtLoaded,
         ]);
 
         this.runAnimation.update(deltaMs);
         this.idleAnimation.update(deltaMs);
 
         for (const other of others) {
-            // --- СТАН АТАКИ ДЛЯ КОЖНОГО ГРАВЦЯ ---
+            // --- СТАН АНІМАЦІЙ ДЛЯ КОЖНОГО ГРАВЦЯ ---
             let state = this.animationStates.get(other.id);
             if (!state) {
                 state = {
-                    attackFrame: 0,
                     attackTime: 0,
-                    runAttackFrame: 0,
                     runAttackTime: 0,
+                    deathTime: 0,
+                    hurtTime: 0,
+                    lastIsAttacking: false,
+                    lastIsRunAttacking: false,
+                    lastIsDead: false,
+                    lastIsHurt: false,
                 };
                 this.animationStates.set(other.id, state);
             }
@@ -89,14 +95,46 @@ export class OtherPlayersRenderer {
             const isMoving = !!other.isMoving;
             const isAttacking = !!other.isAttacking;
             const isRunAttacking = !!other.isRunAttacking;
+            const isDead = !!other.isDead;
+            const isHurt = !!other.isHurt;
+            const deathDirection = (other.deathDirection || dir) as DeathDirection;
+            const hurtDirection = dir as HurtDirection;
 
             ctx.save();
             ctx.filter = `drop-shadow(0 0 0 ${color})`;
 
-            // --- АТАКА ---
+            // --- Анімація смерті ---
+            if (isDead) {
+                // Якщо тільки почалась смерть — скидаємо deathTime
+                if (!state.lastIsDead) state.deathTime = 0;
+                state.deathTime += deltaMs;
+                this.deathAnimation.drawFrame(ctx, isoX, isoY, deathDirection, 1, state.deathTime);
+                state.lastIsDead = true;
+                state.lastIsHurt = false;
+                state.hurtTime = 0;
+                ctx.restore();
+                this.drawId(ctx, other.id, isoX, isoY);
+                continue;
+            }
+
+            // --- Анімація отримання урона ---
+            if (isHurt) {
+                if (!state.lastIsHurt) state.hurtTime = 0;
+                state.hurtTime += deltaMs;
+                this.hurtAnimation.drawFrame(ctx, isoX, isoY, hurtDirection, 1, state.hurtTime);
+                // Якщо анімація завершилась, не малюємо hurt далі (але це має контролювати сервер)
+                state.lastIsHurt = true;
+                state.lastIsDead = false;
+                state.deathTime = 0;
+                ctx.restore();
+                this.drawId(ctx, other.id, isoX, isoY);
+                continue;
+            }
+
+            // --- Атака під час бігу ---
             if (isRunAttacking) {
+                if (!state.lastIsRunAttacking) state.runAttackTime = 0;
                 state.runAttackTime += deltaMs;
-                // draw з ручним кадром
                 this.runAttackAnimation.drawFrame(
                     ctx,
                     isoX,
@@ -105,11 +143,17 @@ export class OtherPlayersRenderer {
                     1,
                     state.runAttackTime,
                 );
-                // Якщо атака закінчилась (наприклад, 600мс), скидаємо
-                if (state.runAttackTime > this.runAttackAnimation.duration) {
-                    state.runAttackTime = 0;
-                }
-            } else if (isAttacking) {
+                state.lastIsRunAttacking = true;
+                state.lastIsAttacking = false;
+                state.attackTime = 0;
+                ctx.restore();
+                this.drawId(ctx, other.id, isoX, isoY);
+                continue;
+            }
+
+            // --- Атака на місці ---
+            if (isAttacking) {
+                if (!state.lastIsAttacking) state.attackTime = 0;
                 state.attackTime += deltaMs;
                 this.attackAnimation.drawFrame(
                     ctx,
@@ -119,29 +163,50 @@ export class OtherPlayersRenderer {
                     1,
                     state.attackTime,
                 );
-                if (state.attackTime > this.attackAnimation.duration) {
-                    state.attackTime = 0;
-                }
-            } else if (isMoving) {
+                state.lastIsAttacking = true;
+                state.lastIsRunAttacking = false;
+                state.runAttackTime = 0;
+                ctx.restore();
+                this.drawId(ctx, other.id, isoX, isoY);
+                continue;
+            }
+
+            // --- Біг ---
+            if (isMoving) {
                 this.runAnimation.draw(ctx, isoX, isoY, dir as RunDirection, 1);
-                // Скидаємо атаку, якщо не атакує
+                // Скидаємо інші анімації
                 state.attackTime = 0;
                 state.runAttackTime = 0;
+                state.deathTime = 0;
+                state.hurtTime = 0;
+                state.lastIsAttacking = false;
+                state.lastIsRunAttacking = false;
+                state.lastIsDead = false;
+                state.lastIsHurt = false;
             } else {
+                // --- Idle ---
                 this.idleAnimation.draw(ctx, isoX, isoY, dir as IdleDirection, 1);
                 state.attackTime = 0;
                 state.runAttackTime = 0;
+                state.deathTime = 0;
+                state.hurtTime = 0;
+                state.lastIsAttacking = false;
+                state.lastIsRunAttacking = false;
+                state.lastIsDead = false;
+                state.lastIsHurt = false;
             }
             ctx.restore();
-
-            // id над спрайтом
-            ctx.save();
-            ctx.font = '12px monospace';
-            ctx.fillStyle = '#222';
-            ctx.textAlign = 'center';
-            ctx.fillText(other.id.slice(0, 6), isoX, isoY - 40);
-            ctx.restore();
+            this.drawId(ctx, other.id, isoX, isoY);
         }
+    }
+
+    private drawId(ctx: CanvasRenderingContext2D, id: string, x: number, y: number) {
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#222';
+        ctx.textAlign = 'center';
+        ctx.fillText(id.slice(0, 6), x, y - 40);
+        ctx.restore();
     }
 
     private getDirection(
@@ -165,9 +230,6 @@ export class OtherPlayersRenderer {
         }
     }
 
-    /**
-     * Генерує колір для гравця на основі його id.
-     */
     private getColorForId(id: string): string {
         let hash = 0;
         for (let i = 0; i < id.length; i++) {
