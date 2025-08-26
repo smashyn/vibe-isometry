@@ -16,11 +16,26 @@ type PlayersUpdate = {
     players: PlayerNetData[];
 };
 
+type MapUpdate = {
+    type: 'map';
+    width: number;
+    height: number;
+    map: any;
+    rooms: any;
+};
+
 export class PlayerNetworkClient {
     private ws: WebSocket;
     public players: Map<string, PlayerNetData> = new Map();
     private myId: string | null = null;
     private queuedJoin: { x: number; y: number; direction: string } | null = null;
+
+    // Додаємо збереження карти
+    public map: any = null;
+    public mapWidth: number = 0;
+    public mapHeight: number = 0;
+    public mapRooms: any = null;
+    public onMap?: (map: any, width: number, height: number, rooms: any) => void;
 
     /**
      * @param serverUrl адреса сервера
@@ -28,6 +43,7 @@ export class PlayerNetworkClient {
      * @param startX стартова координата X
      * @param startY стартова координата Y
      * @param direction стартовий напрямок
+     * @param onMap callback для отримання карти (необов'язково)
      */
     constructor(
         serverUrl: string,
@@ -35,8 +51,10 @@ export class PlayerNetworkClient {
         startX: number,
         startY: number,
         direction: string,
+        onMap?: (map: any, width: number, height: number, rooms: any) => void,
     ) {
         this.ws = new WebSocket(serverUrl);
+        if (onMap) this.onMap = onMap;
 
         this.ws.addEventListener('message', (event) => {
             try {
@@ -57,6 +75,15 @@ export class PlayerNetworkClient {
                     this.players.clear();
                     for (const p of data.players) {
                         this.players.set(p.id, p);
+                    }
+                } else if (data.type === 'map') {
+                    // --- Отримання карти від сервера ---
+                    this.map = data.map;
+                    this.mapWidth = data.width;
+                    this.mapHeight = data.height;
+                    this.mapRooms = data.rooms;
+                    if (this.onMap) {
+                        this.onMap(this.map, this.mapWidth, this.mapHeight, this.mapRooms);
                     }
                 }
             } catch (e) {

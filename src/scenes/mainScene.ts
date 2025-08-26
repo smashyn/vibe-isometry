@@ -38,20 +38,9 @@ export class MainScene implements Scene {
     constructor() {
         this.textures = new TileTextures();
 
-        // Створіть GameField спочатку без Player
-        let player: Player;
-        let gameField: GameField;
-
-        gameField = new GameField(
-            (player = new Player((gx, gy) => gameField.getTileTypeAt(gx, gy))),
-            () => this.showGrid,
-            this.tileWidth,
-            this.tileHeight,
-            this.gridSize,
-            this.textures,
-        );
-        this.player = player;
-        this.gameField = gameField;
+        // Створюємо Player одразу, але GameField створимо після отримання карти
+        this.player = new Player((gx, gy) => this.gameField?.getTileTypeAt(gx, gy));
+        this.gameField = undefined as any; // GameField буде створено після отримання карти
 
         this.chat = new Chat();
         this.info = new Info(this.player);
@@ -123,6 +112,7 @@ export class MainScene implements Scene {
             { passive: false },
         );
 
+        // Використання PlayerNetworkClient
         this.net = new PlayerNetworkClient(
             'ws://localhost:3000',
             (id) => {
@@ -131,6 +121,21 @@ export class MainScene implements Scene {
             this.player.x,
             this.player.y,
             this.player.direction,
+            (map, width, height, rooms) => {
+                // Створюємо GameField тільки після отримання карти
+                this.gameField = new GameField(
+                    this.player,
+                    () => this.showGrid,
+                    this.tileWidth,
+                    this.tileHeight,
+                    this.gridSize,
+                    this.textures,
+                    map,
+                    width,
+                    height,
+                    rooms,
+                );
+            },
         );
 
         this.tabsPanel = new TabsPanel([

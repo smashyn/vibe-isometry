@@ -2,6 +2,9 @@ import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { randomUUID } from 'crypto';
 
+// Додаємо імпорт генератора карти
+import { Room, generateDungeonWithSeed } from './generateDungeon.ts';
+
 interface MyWebSocket extends WebSocket {
     id?: string;
 }
@@ -16,19 +19,38 @@ type PlayerData = {
     isRunAttacking?: boolean;
     isDead?: boolean;
     isHurt?: boolean;
-    hurtUntil?: number; // <--- Додаємо це поле
+    hurtUntil?: number;
     deathDirection?: string;
 };
 
 const players = new Map<string, PlayerData>();
 
+// --- Генеруємо карту один раз при старті сервера ---
+const DUNGEON_WIDTH = 100;
+const DUNGEON_HEIGHT = 50;
+const DUNGEON_SEED = 54321;
+
+const { map: dungeonMap, rooms: dungeonRooms } = generateDungeonWithSeed(
+    DUNGEON_WIDTH,
+    DUNGEON_HEIGHT,
+    30, // roomCount
+    10, // minRoomSize
+    15, // maxRoomSize
+    DUNGEON_SEED,
+);
+
+function getRandomRoomCenter(rooms: Room[]) {
+    const room = rooms[Math.floor(Math.random() * rooms.length)];
+    return {
+        x: Math.floor(room.x + room.w / 2),
+        y: Math.floor(room.y + room.h / 2),
+    };
+}
+
 const server = createServer();
 const wss = new WebSocketServer({ server });
 
-// --- Додаємо прапорець для логування ---
 let ENABLE_LOGS = true;
-
-// Для зручності: функція для логування
 function log(...args: any[]) {
     if (ENABLE_LOGS) {
         console.log(...args);
@@ -39,10 +61,14 @@ wss.on('connection', function connection(ws) {
     const playerId = randomUUID();
     const wsTyped = ws as MyWebSocket;
     wsTyped.id = playerId;
+
+    // --- Розміщуємо гравця у випадковій кімнаті ---
+    const { x, y } = getRandomRoomCenter(dungeonRooms);
+
     players.set(playerId, {
         id: playerId,
-        x: 0,
-        y: 0,
+        x,
+        y,
         direction: 'down',
         isMoving: false,
         isAttacking: false,
@@ -53,6 +79,17 @@ wss.on('connection', function connection(ws) {
     });
 
     ws.send(JSON.stringify({ type: 'id', id: playerId }));
+
+    // --- Надсилаємо карту клієнту ---
+    ws.send(
+        JSON.stringify({
+            type: 'map',
+            width: DUNGEON_WIDTH,
+            height: DUNGEON_HEIGHT,
+            map: dungeonMap,
+            rooms: dungeonRooms,
+        }),
+    );
 
     ws.on('message', function incoming(message) {
         let data;
@@ -81,7 +118,6 @@ wss.on('connection', function connection(ws) {
                 player.isHurt = !!data.isHurt;
                 player.deathDirection = data.deathDirection || player.deathDirection;
 
-                // Лог руху лише якщо щось змінилось
                 if (
                     prevX !== player.x ||
                     prevY !== player.y ||
@@ -99,7 +135,6 @@ wss.on('connection', function connection(ws) {
             const attacker = players.get((ws as any).id);
             if (!attacker) return;
 
-            // Якщо атакує свою ж клітину, дозволяємо атаку по гравцях у цій клітині
             const dist = Math.max(
                 Math.abs(attacker.x - data.targetX),
                 Math.abs(attacker.y - data.targetY),
@@ -107,9 +142,8 @@ wss.on('connection', function connection(ws) {
             log(
                 `[ATTACK] ${attacker.id} атакує (${data.targetX}, ${data.targetY}) з (${attacker.x}, ${attacker.y}), dist=${dist}`,
             );
-            if (dist !== 1 && dist !== 0) return; // Дозволяємо атаку на сусідню або свою клітину
+            if (dist !== 1 && dist !== 0) return;
 
-            // Знаходимо гравця у цільовій клітині (крім себе)
             for (const [id, player] of players) {
                 if (
                     id !== (ws as any).id &&
@@ -117,7 +151,7 @@ wss.on('connection', function connection(ws) {
                     Math.round(player.y) === data.targetY
                 ) {
                     player.isHurt = true;
-                    player.hurtUntil = Date.now() + 400; // 400 мс
+                    player.hurtUntil = Date.now() + 400;
                     log(
                         `[HURT] ${player.id} отримав урон на (${player.x}, ${player.y}) від ${attacker.id}`,
                     );

@@ -5,14 +5,6 @@ import { Player } from '../entities/Player.js';
 import { EarthTile } from '../tiles/EarthTile.js';
 import { GrassTile } from '../tiles/GrassTile.js';
 import { StoneTile } from '../tiles/StoneTile.js';
-// Update the import path and extension if the file is actually TypeScript or has a different name
-import {
-    STATIC_DUNGEON_MAP,
-    STATIC_DUNGEON_WIDTH,
-    STATIC_DUNGEON_HEIGHT,
-    STATIC_DUNGEON_ROOMS,
-} from '../tiles/staticDungeon.js';
-import { Room, TileType } from '../tiles/generateDungeon.js';
 import { TileTextures } from '../tiles/TileTextures.js';
 
 function getTileByType(type: TileType, textures: TileTextures) {
@@ -26,6 +18,15 @@ function getTileByType(type: TileType, textures: TileTextures) {
         default:
             return null;
     }
+}
+
+export type TileType = 'earth' | 'grass' | 'stone';
+
+export interface Room {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
 }
 
 export class GameField {
@@ -45,11 +46,16 @@ export class GameField {
         private tileHeight: number,
         private gridSize: number,
         private textures: TileTextures,
+        // Додаємо параметри для карти з сервера:
+        map: TileType[][],
+        mapWidth: number,
+        mapHeight: number,
+        rooms: Room[],
     ) {
-        this.dungeon = STATIC_DUNGEON_MAP;
-        this.dungeonWidth = STATIC_DUNGEON_WIDTH;
-        this.dungeonHeight = STATIC_DUNGEON_HEIGHT;
-        this.rooms = STATIC_DUNGEON_ROOMS;
+        this.dungeon = map;
+        this.dungeonWidth = mapWidth;
+        this.dungeonHeight = mapHeight;
+        this.rooms = rooms;
 
         this.earthTile = new EarthTile(this.textures);
         this.grassTile = new GrassTile(this.textures);

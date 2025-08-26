@@ -7,16 +7,41 @@ export interface Room {
     h: number; // height
 }
 
+// Додаємо підтримку сідованого Math.random
+function seededRandom(seed: number) {
+    let x = Math.sin(seed) * 10000;
+    return function () {
+        x = Math.sin(x) * 10000;
+        return x - Math.floor(x);
+    };
+}
+
+// Патчимо Math.random для стабільної генерації
+export function generateDungeonWithSeed(
+    width: number,
+    height: number,
+    roomCount: number,
+    minRoomSize: number,
+    maxRoomSize: number,
+    seed: number,
+) {
+    const oldRandom = Math.random;
+    Math.random = seededRandom(seed);
+    const result = generateDungeon(width, height, roomCount, minRoomSize, maxRoomSize);
+    Math.random = oldRandom;
+    return result;
+}
+
 // Тепер повертає і карту, і масив кімнат
 export function generateDungeon(
     width: number,
     height: number,
     roomCount: number = 6,
     minRoomSize: number = 4,
-    maxRoomSize: number = 8
-): { map: TileType[][], rooms: Room[] } {
+    maxRoomSize: number = 8,
+): { map: TileType[][]; rooms: Room[] } {
     const map: TileType[][] = Array.from({ length: height }, () =>
-        Array.from({ length: width }, () => 'stone' as TileType)
+        Array.from({ length: width }, () => 'stone' as TileType),
     );
 
     const rooms: Room[] = [];
