@@ -66,10 +66,6 @@ export class MainScene implements Scene {
                         down: 0,
                         left: -1,
                         right: 1,
-                        'up-left': -1,
-                        'up-right': 1,
-                        'down-left': -1,
-                        'down-right': 1,
                         none: 0,
                     }[this.player.direction] ?? 0;
                 const dy =
@@ -78,10 +74,6 @@ export class MainScene implements Scene {
                         down: 1,
                         left: 0,
                         right: 0,
-                        'up-left': -1,
-                        'up-right': -1,
-                        'down-left': 1,
-                        'down-right': 1,
                         none: 0,
                     }[this.player.direction] ?? 0;
                 const targetX = Math.round(this.player.x + dx);
