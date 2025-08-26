@@ -212,22 +212,7 @@ export class OtherPlayersRenderer {
     private getDirection(
         dir: string,
     ): RunDirection | IdleDirection | AttackDirection | RunAttackDirection {
-        switch (dir) {
-            case 'up':
-            case 'up-left':
-            case 'up-right':
-                return 'up';
-            case 'down':
-            case 'down-left':
-            case 'down-right':
-                return 'down';
-            case 'left':
-                return 'left';
-            case 'right':
-                return 'right';
-            default:
-                return 'down';
-        }
+        return ['up', 'down', 'left', 'right'].includes(dir) ? (dir as RunDirection) : 'down';
     }
 
     private getColorForId(id: string): string {

@@ -6,15 +6,31 @@ export class PlayerIdleAnimation {
     private sprite: HTMLImageElement;
     private frameWidth = 64;
     private frameHeight = 64;
-    private framesPerRow = 4;
+    // Кількість кадрів у кожному рядку
+    private framesPerRow: Record<IdleDirection, number> = {
+        down: 12,
+        left: 12,
+        right: 12,
+        up: 4,
+    };
     private directions: Record<IdleDirection, number> = {
         down: 0,
         left: 1,
         right: 2,
         up: 3,
     };
-    private currentFrame = 0;
-    private frameTime = 0;
+    private currentFrames: Record<IdleDirection, number> = {
+        down: 0,
+        left: 0,
+        right: 0,
+        up: 0,
+    };
+    private frameTimes: Record<IdleDirection, number> = {
+        down: 0,
+        left: 0,
+        right: 0,
+        up: 0,
+    };
     private frameDuration = 200; // ms на кадр (5 fps)
     public loaded: Promise<void>;
 
@@ -27,11 +43,13 @@ export class PlayerIdleAnimation {
     }
 
     update(deltaMs: number) {
-        this.frameTime += deltaMs;
-        if (this.frameTime >= this.frameDuration) {
-            this.currentFrame = (this.currentFrame + 1) % this.framesPerRow;
-            this.frameTime = 0;
-        }
+        (['down', 'left', 'right', 'up'] as IdleDirection[]).forEach((dir) => {
+            this.frameTimes[dir] += deltaMs;
+            if (this.frameTimes[dir] >= this.frameDuration) {
+                this.currentFrames[dir] = (this.currentFrames[dir] + 1) % this.framesPerRow[dir];
+                this.frameTimes[dir] = 0;
+            }
+        });
     }
 
     draw(
@@ -42,11 +60,12 @@ export class PlayerIdleAnimation {
         scale: number = 1,
     ) {
         const row = this.directions[direction];
+        const frame = this.currentFrames[direction];
         ctx.save();
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(
             this.sprite,
-            this.currentFrame * this.frameWidth,
+            frame * this.frameWidth,
             row * this.frameHeight,
             this.frameWidth,
             this.frameHeight,
@@ -59,7 +78,9 @@ export class PlayerIdleAnimation {
     }
 
     reset() {
-        this.currentFrame = 0;
-        this.frameTime = 0;
+        (['down', 'left', 'right', 'up'] as IdleDirection[]).forEach((dir) => {
+            this.currentFrames[dir] = 0;
+            this.frameTimes[dir] = 0;
+        });
     }
 }

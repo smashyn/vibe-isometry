@@ -10,16 +10,7 @@ import {
 import { PlayerDeathAnimation, DeathDirection } from '../sprites/PlayerDeathAnimation.js';
 import { PlayerHurtAnimation, HurtDirection } from '../sprites/PlayerHurtAnimation.js';
 
-type Direction =
-    | 'up'
-    | 'down'
-    | 'left'
-    | 'right'
-    | 'up-right'
-    | 'up-left'
-    | 'down-right'
-    | 'down-left'
-    | 'none';
+type Direction = 'up' | 'down' | 'left' | 'right' | 'none';
 
 export class Player implements Scene {
     /** Поточна координата X гравця на сітці */
@@ -70,6 +61,9 @@ export class Player implements Scene {
     private hurtTime = 0;
 
     private deathDirection: DeathDirection = 'down';
+
+    /** Поле для збереження попереднього стану */
+    private lastSentState: any = {};
 
     /**
      * Конструктор. Приймає функцію для отримання типу тайла за координатами.
@@ -174,77 +168,25 @@ export class Player implements Scene {
      */
     private updateDirection(dx: number, dy: number) {
         if (dx === 0 && dy === 0) return;
-        const angle = Math.atan2(dy, dx);
-        if (angle >= -Math.PI / 8 && angle < Math.PI / 8) {
-            this.direction = 'right';
-        } else if (angle >= Math.PI / 8 && angle < (3 * Math.PI) / 8) {
-            this.direction = 'down-right';
-        } else if (angle >= (3 * Math.PI) / 8 && angle < (5 * Math.PI) / 8) {
-            this.direction = 'down';
-        } else if (angle >= (5 * Math.PI) / 8 && angle < (7 * Math.PI) / 8) {
-            this.direction = 'left';
-        } else if (angle >= (7 * Math.PI) / 8 || angle < (-7 * Math.PI) / 8) {
-            this.direction = 'left';
-        } else if (angle >= (-7 * Math.PI) / 8 && angle < (-5 * Math.PI) / 8) {
-            this.direction = 'up-left';
-        } else if (angle >= (-5 * Math.PI) / 8 && angle < (-3 * Math.PI) / 8) {
-            this.direction = 'up';
-        } else if (angle >= (-3 * Math.PI) / 8 && angle < -Math.PI / 8) {
-            this.direction = 'right';
+        if (Math.abs(dx) > Math.abs(dy)) {
+            this.direction = dx > 0 ? 'right' : 'left';
+        } else {
+            this.direction = dy > 0 ? 'down' : 'up';
         }
     }
 
-    /**
-     * Оновлює позицію гравця згідно з цільовими координатами, враховуючи колізії.
-     * @param delta Час з моменту останнього оновлення (секунди)
-     */
-    update(delta: number): void {
-        if (this.isDead) {
-            this.deathTime += delta * 1000;
-            this.deathAnimation.update(delta * 1000);
-            return;
-        }
-        if (this.isHurt) {
-            this.hurtTime += delta * 1000;
-            this.hurtAnimation.update(delta * 1000);
-            // Коли анімація завершилась, скидаємо стан
-            if (this.hurtTime > this.hurtAnimation.duration) {
-                this.isHurt = false;
-                this.hurtTime = 0;
-                this.hurtAnimation.reset();
-            }
-            return;
-        }
+    private isTilePassable(type: string): boolean {
+        // Список непрохідних типів (можна розширити)
+        const impassable = ['stone', 'wall', 'water', 'lava'];
+        return !impassable.includes(type);
+    }
 
-        // Якщо мишка не натиснута — не рухаємо персонажа, координати фіксуємо до цілих
-        if (!this.mouseDown) {
-            this.x = Math.round(this.x);
-            this.y = Math.round(this.y);
-            this.targetX = this.x;
-            this.targetY = this.y;
-            return;
-        }
-
-        const speed = this.speed * delta;
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
-        const dist = Math.hypot(dx, dy);
-
-        // Якщо персонаж майже на цілі — фіксуємо координати до цілих
-        if (dist < 0.01) {
-            this.x = Math.round(this.x);
-            this.y = Math.round(this.y);
-            this.targetX = this.x;
-            this.targetY = this.y;
-            return;
-        }
-
+    private moveWithCollision(dx: number, dy: number, speed: number, dist: number) {
         let stepX = 0,
             stepY = 0;
         if (Math.abs(dx) > 0.01) stepX = Math.sign(dx);
         if (Math.abs(dy) > 0.01) stepY = Math.sign(dy);
 
-        // Перевіряємо діагональний рух
         if (stepX !== 0 && stepY !== 0) {
             const nextDiagX = Math.round(this.x + stepX);
             const nextDiagY = Math.round(this.y + stepY);
@@ -255,42 +197,115 @@ export class Player implements Scene {
             const nextXType = this.getTileTypeAt(nextX, Math.round(this.y));
             const nextYType = this.getTileTypeAt(Math.round(this.x), nextY);
 
-            if (nextDiagType !== 'stone' && nextXType !== 'stone' && nextYType !== 'stone') {
-                // Діагональний рух дозволено лише якщо всі три тайли не камінь
+            if (
+                this.isTilePassable(nextDiagType) &&
+                this.isTilePassable(nextXType) &&
+                this.isTilePassable(nextYType)
+            ) {
                 this.x += (dx / dist) * Math.min(speed, dist);
                 this.y += (dy / dist) * Math.min(speed, dist);
-            } else if (nextXType !== 'stone' && nextYType === 'stone') {
-                // Можна рухатись лише по X, але не залазимо на перешкоду по Y
+            } else if (this.isTilePassable(nextXType) && !this.isTilePassable(nextYType)) {
                 this.x += (dx / Math.abs(dx)) * Math.min(speed, Math.abs(dx));
                 this.y = Math.round(this.y);
-            } else if (nextYType !== 'stone' && nextXType === 'stone') {
-                // Можна рухатись лише по Y, але не залазимо на перешкоду по X
+            } else if (this.isTilePassable(nextYType) && !this.isTilePassable(nextXType)) {
                 this.y += (dy / Math.abs(dy)) * Math.min(speed, Math.abs(dy));
                 this.x = Math.round(this.x);
             } else {
-                // Перешкода — координати не змінюються, але дозволяємо анімацію
                 this.x = Math.round(this.x);
                 this.y = Math.round(this.y);
             }
         } else if (stepX !== 0) {
-            // Рух тільки по X
             const nextX = Math.round(this.x + stepX);
             const nextXType = this.getTileTypeAt(nextX, Math.round(this.y));
-            if (nextXType !== 'stone') {
+            if (this.isTilePassable(nextXType)) {
                 this.x += (dx / Math.abs(dx)) * Math.min(speed, Math.abs(dx));
             } else {
                 this.x = Math.round(this.x);
             }
         } else if (stepY !== 0) {
-            // Рух тільки по Y
             const nextY = Math.round(this.y + stepY);
             const nextYType = this.getTileTypeAt(Math.round(this.x), nextY);
-            if (nextYType !== 'stone') {
+            if (this.isTilePassable(nextYType)) {
                 this.y += (dy / Math.abs(dy)) * Math.min(speed, Math.abs(dy));
             } else {
                 this.y = Math.round(this.y);
             }
         }
+    }
+
+    /**
+     * Оновлює позицію гравця згідно з цільовими координатами, враховуючи колізії.
+     * @param delta Час з моменту останнього оновлення (секунди)
+     */
+    update(
+        delta: number,
+        sendMove?: (
+            x: number,
+            y: number,
+            direction: string,
+            isMoving?: boolean,
+            isAttacking?: boolean,
+            isRunAttacking?: boolean,
+            isDead?: boolean,
+            isHurt?: boolean,
+            deathDirection?: string,
+        ) => void,
+    ): void {
+        if (this.isDead) {
+            this.deathTime += delta * 1000;
+            this.deathAnimation.update(delta * 1000);
+            this.sendStateIfChanged(sendMove);
+            return;
+        }
+        if (this.isHurt) {
+            this.hurtTime += delta * 1000;
+            this.hurtAnimation.update(delta * 1000);
+            if (this.hurtTime > this.hurtAnimation.duration) {
+                this.isHurt = false;
+                this.hurtTime = 0;
+                this.hurtAnimation.reset();
+            }
+            this.sendStateIfChanged(sendMove);
+            return;
+        }
+
+        // Якщо мишка не натиснута — не рухаємо персонажа, координати фіксуємо до цілих
+        if (!this.mouseDown) {
+            // Якщо ще не дійшли до цілі — продовжуємо рух до targetX/targetY
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 0.01) {
+                this.x = Math.round(this.x);
+                this.y = Math.round(this.y);
+                this.targetX = this.x;
+                this.targetY = this.y;
+                this.sendStateIfChanged(sendMove);
+                return;
+            }
+            const speed = this.speed * delta;
+            this.moveWithCollision(dx, dy, speed, dist);
+            this.sendStateIfChanged(sendMove);
+            return;
+        }
+
+        const speed = this.speed * delta;
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 0.01) {
+            this.x = Math.round(this.x);
+            this.y = Math.round(this.y);
+            this.targetX = this.x;
+            this.targetY = this.y;
+            this.sendStateIfChanged(sendMove);
+            return;
+        }
+
+        this.moveWithCollision(dx, dy, speed, dist);
+        this.sendStateIfChanged(sendMove);
     }
 
     /**
@@ -366,22 +381,53 @@ export class Player implements Scene {
     }
 
     private getHurtDirection(): HurtDirection {
-        // Визначте напрямок hurt за поточним напрямком гравця
-        switch (this.direction) {
-            case 'up':
-            case 'up-left':
-            case 'up-right':
-                return 'up';
-            case 'down':
-            case 'down-left':
-            case 'down-right':
-                return 'down';
-            case 'left':
-                return 'left';
-            case 'right':
-                return 'right';
-            default:
-                return 'down';
+        // Якщо direction не є допустимим напрямком, повертаємо 'down' за замовчуванням
+        return this.direction === 'up' ||
+            this.direction === 'down' ||
+            this.direction === 'left' ||
+            this.direction === 'right'
+            ? this.direction
+            : 'down';
+    }
+
+    private sendStateIfChanged(
+        sendMove?: (
+            x: number,
+            y: number,
+            direction: string,
+            isMoving?: boolean,
+            isAttacking?: boolean,
+            isRunAttacking?: boolean,
+            isDead?: boolean,
+            isHurt?: boolean,
+            deathDirection?: string,
+        ) => void,
+    ) {
+        if (!sendMove) return;
+        const state = {
+            x: Math.round(this.x),
+            y: Math.round(this.y),
+            direction: this.direction,
+            isMoving: this.mouseDown,
+            isAttacking: this.isAttacking,
+            isRunAttacking: this.isRunAttacking,
+            isDead: this.isDead,
+            isHurt: this.isHurt,
+            deathDirection: this.deathDirection,
+        };
+        if (JSON.stringify(state) !== JSON.stringify(this.lastSentState)) {
+            sendMove(
+                state.x,
+                state.y,
+                state.direction,
+                state.isMoving,
+                state.isAttacking,
+                state.isRunAttacking,
+                state.isDead,
+                state.isHurt,
+                state.deathDirection,
+            );
+            this.lastSentState = state;
         }
     }
 

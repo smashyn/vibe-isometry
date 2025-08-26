@@ -156,22 +156,10 @@ export class MainScene implements Scene {
     };
 
     private getDirection(): 'up' | 'down' | 'left' | 'right' {
-        switch (this.player.direction) {
-            case 'up':
-            case 'up-left':
-            case 'up-right':
-                return 'up';
-            case 'down':
-            case 'down-left':
-            case 'down-right':
-                return 'down';
-            case 'left':
-                return 'left';
-            case 'right':
-                return 'right';
-            default:
-                return 'down';
-        }
+        // Повертаємо direction напряму, якщо він валідний, інакше 'down'
+        return ['up', 'down', 'left', 'right'].includes(this.player.direction)
+            ? (this.player.direction as 'up' | 'down' | 'left' | 'right')
+            : 'down';
     }
 
     update(delta: number): void {
