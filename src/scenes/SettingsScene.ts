@@ -3,9 +3,37 @@ import { Button } from '../ui/Button.js';
 
 export class SettingsScene implements Scene {
     private backButton: Button;
+    private canvas: HTMLCanvasElement | null = null;
+    private onMouseDown = this.handleMouseDown.bind(this);
+    public isActive = false; // Додаємо прапорець активності
 
     constructor(onBack: () => void) {
-        this.backButton = new Button(400, 300, 200, 50, 'Назад', onBack);
+        this.backButton = new Button(400, 300, 200, 50, 'Назад', onBack, () => this.isActive);
+    }
+
+    onActivate() {
+        this.isActive = true;
+        this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+        if (this.canvas) {
+            this.canvas.addEventListener('mousedown', this.onMouseDown);
+        }
+    }
+
+    onDeactivate() {
+        this.isActive = false;
+        if (this.canvas) {
+            this.canvas.removeEventListener('mousedown', this.onMouseDown);
+        }
+    }
+
+    private handleMouseDown(e: MouseEvent) {
+        if (!this.isActive || !this.canvas) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        if (this.backButton.contains(x, y)) {
+            this.backButton.onClick();
+        }
     }
 
     update(_: number) {}

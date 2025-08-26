@@ -20,8 +20,8 @@ function goToConnect() {
 function goToSettings() {
     engine.setScene(settingsScene);
 }
-function startGame(serverAddress: string) {
-    mainScene = new MainScene(serverAddress);
+function startGame() {
+    mainScene = new MainScene();
     engine.setScene(mainScene);
 }
 

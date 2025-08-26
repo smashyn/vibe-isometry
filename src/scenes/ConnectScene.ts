@@ -7,21 +7,43 @@ export class ConnectScene implements Scene {
     private onConnect: (address: string) => void;
     private connectButton: Button;
     private inputRect = { x: 400, y: 200, w: 300, h: 40 };
+    public isActive = false; // Додаємо прапорець активності
 
     constructor(onConnect: (address: string) => void) {
         this.onConnect = onConnect;
-        this.connectButton = new Button(400, 260, 200, 50, 'Підключитись', () => {
-            this.onConnect(this.serverAddress);
-        });
+        this.connectButton = new Button(
+            400,
+            260,
+            200,
+            50,
+            'Підключитись',
+            () => {
+                this.onConnect(this.serverAddress);
+            },
+            () => this.isActive,
+        );
+    }
 
+    onActivate() {
+        this.isActive = true;
         const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
         if (canvas) {
             canvas.addEventListener('mousedown', this.handleMouseDown);
-            window.addEventListener('keydown', this.handleKeyDown);
         }
+        window.addEventListener('keydown', this.handleKeyDown);
+    }
+
+    onDeactivate() {
+        this.isActive = false;
+        const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+        if (canvas) {
+            canvas.removeEventListener('mousedown', this.handleMouseDown);
+        }
+        window.removeEventListener('keydown', this.handleKeyDown);
     }
 
     private handleMouseDown = (e: MouseEvent) => {
+        if (!this.isActive) return;
         const canvas = e.target as HTMLCanvasElement;
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -34,7 +56,7 @@ export class ConnectScene implements Scene {
     };
 
     private handleKeyDown = (e: KeyboardEvent) => {
-        if (!this.inputActive) return;
+        if (!this.isActive) return;
         if (e.key === 'Backspace') {
             this.serverAddress = this.serverAddress.slice(0, -1);
         } else if (e.key.length === 1) {

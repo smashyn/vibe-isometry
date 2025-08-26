@@ -21,7 +21,15 @@ export class Engine {
     }
 
     setScene(scene: Scene) {
+        // Деактивуємо попередню сцену, якщо є метод onDeactivate
+        if (this.scene && typeof (this.scene as any).onDeactivate === 'function') {
+            (this.scene as any).onDeactivate();
+        }
         this.scene = scene;
+        // Активуємо нову сцену, якщо є метод onActivate
+        if (this.scene && typeof (this.scene as any).onActivate === 'function') {
+            (this.scene as any).onActivate();
+        }
     }
 
     private loop(time: number) {

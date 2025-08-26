@@ -269,14 +269,14 @@ export class Player implements Scene {
             return;
         }
 
-        // Якщо мишка не натиснута — не рухаємо персонажа, координати фіксуємо до цілих
+        // Якщо мишка не натиснута — не рухаємо персонажа, але якщо не дійшли до цілі — плавно доходимо
         if (!this.mouseDown) {
-            // Якщо ще не дійшли до цілі — продовжуємо рух до targetX/targetY
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             const dist = Math.hypot(dx, dy);
 
             if (dist < 0.01) {
+                // Дійшли до цілі — округляємо координати
                 this.x = Math.round(this.x);
                 this.y = Math.round(this.y);
                 this.targetX = this.x;
@@ -290,12 +290,14 @@ export class Player implements Scene {
             return;
         }
 
+        // Якщо мишка натиснута — рухаємося до цілі плавно
         const speed = this.speed * delta;
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.hypot(dx, dy);
 
         if (dist < 0.01) {
+            // Дійшли до цілі — округляємо координати
             this.x = Math.round(this.x);
             this.y = Math.round(this.y);
             this.targetX = this.x;

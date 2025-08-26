@@ -6,6 +6,9 @@ export class Button {
     label: string;
     onClick: () => void;
     private hovered = false;
+    private canvas: HTMLCanvasElement | null = null;
+    private isListenersActive = false;
+    private getSceneIsActive: () => boolean;
 
     constructor(
         x: number,
@@ -14,6 +17,7 @@ export class Button {
         height: number,
         label: string,
         onClick: () => void,
+        getSceneIsActive: () => boolean, // Додаємо функцію для перевірки активності сцени
     ) {
         this.x = x;
         this.y = y;
@@ -21,15 +25,49 @@ export class Button {
         this.height = height;
         this.label = label;
         this.onClick = onClick;
+        this.getSceneIsActive = getSceneIsActive;
 
-        const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-        if (canvas) {
-            canvas.addEventListener('mousemove', this.handleMouseMove);
-            canvas.addEventListener('click', this.handleClick);
+        this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+        if (this.canvas) {
+            this.addListeners();
         }
     }
 
+    private addListeners() {
+        if (this.canvas && !this.isListenersActive) {
+            this.canvas.addEventListener('mousemove', this.handleMouseMove);
+            this.canvas.addEventListener('mousedown', this.handleClick);
+            this.isListenersActive = true;
+        }
+    }
+
+    private removeListeners() {
+        if (this.canvas && this.isListenersActive) {
+            this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+            this.canvas.removeEventListener('mousedown', this.handleClick);
+            this.isListenersActive = false;
+        }
+    }
+
+    // Викликайте ці методи з onActivate/onDeactivate вашої сцени:
+    public onActivate() {
+        this.addListeners();
+    }
+    public onDeactivate() {
+        this.removeListeners();
+    }
+
+    contains(px: number, py: number): boolean {
+        return (
+            px >= this.x && px <= this.x + this.width && py >= this.y && py <= this.y + this.height
+        );
+    }
+
     private handleMouseMove = (e: MouseEvent) => {
+        if (!this.getSceneIsActive()) {
+            this.hovered = false;
+            return;
+        }
         const canvas = e.target as HTMLCanvasElement;
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -39,6 +77,7 @@ export class Button {
     };
 
     private handleClick = (e: MouseEvent) => {
+        if (!this.getSceneIsActive()) return;
         if (this.hovered) {
             this.onClick();
         }
