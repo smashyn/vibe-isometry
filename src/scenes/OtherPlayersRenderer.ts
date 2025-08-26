@@ -20,6 +20,13 @@ type AnimationState = {
     lastIsHurt: boolean;
 };
 
+type InterpolatedState = {
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+};
+
 export class OtherPlayersRenderer {
     private runAnimation = new PlayerAnimation();
     private idleAnimation = new PlayerIdleAnimation();
@@ -36,6 +43,7 @@ export class OtherPlayersRenderer {
     private hurtLoaded = this.hurtAnimation.loaded;
 
     private animationStates = new Map<string, AnimationState>();
+    private interpolatedStates = new Map<string, InterpolatedState>();
 
     constructor(
         private tileWidth: number,
@@ -44,6 +52,7 @@ export class OtherPlayersRenderer {
 
     /**
      * Малює інших гравців на карті з анімацією та підтримкою різних станів.
+     * Додаємо інтерполяцію позицій для плавності.
      */
     async render(
         ctx: CanvasRenderingContext2D,
@@ -66,7 +75,38 @@ export class OtherPlayersRenderer {
         this.runAnimation.update(deltaMs);
         this.idleAnimation.update(deltaMs);
 
+        // --- Оновлюємо цільові координати для інтерполяції ---
         for (const other of others) {
+            let interp = this.interpolatedStates.get(other.id);
+            if (!interp) {
+                interp = {
+                    x: other.x,
+                    y: other.y,
+                    targetX: other.x,
+                    targetY: other.y,
+                };
+                this.interpolatedStates.set(other.id, interp);
+            } else {
+                // Якщо координати змінились — оновлюємо targetX/targetY
+                if (interp.targetX !== other.x || interp.targetY !== other.y) {
+                    interp.targetX = other.x;
+                    interp.targetY = other.y;
+                }
+            }
+        }
+
+        // --- Інтерполюємо позиції ---
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+        const interpSpeed = 0.18; // Чим більше — тим швидше дотягує (0.1..0.3)
+
+        for (const other of others) {
+            let interp = this.interpolatedStates.get(other.id);
+            if (!interp) continue;
+
+            // Інтерполяція до цільових координат
+            interp.x = lerp(interp.x, interp.targetX, interpSpeed);
+            interp.y = lerp(interp.y, interp.targetY, interpSpeed);
+
             // --- СТАН АНІМАЦІЙ ДЛЯ КОЖНОГО ГРАВЦЯ ---
             let state = this.animationStates.get(other.id);
             if (!state) {
@@ -84,8 +124,8 @@ export class OtherPlayersRenderer {
             }
 
             // --- Визначаємо координати ---
-            const dx = other.x - myX;
-            const dy = other.y - myY;
+            const dx = interp.x - myX;
+            const dy = interp.y - myY;
             const isoX = centerX + (dx - dy) * (this.tileWidth / 2);
             const isoY = centerY + (dx + dy) * (this.tileHeight / 2);
 

@@ -16,6 +16,7 @@ type PlayerData = {
     isRunAttacking?: boolean;
     isDead?: boolean;
     isHurt?: boolean;
+    hurtUntil?: number; // <--- Додаємо це поле
     deathDirection?: string;
 };
 
@@ -98,7 +99,7 @@ wss.on('connection', function connection(ws) {
             const attacker = players.get((ws as any).id);
             if (!attacker) return;
 
-            // Перевірка дистанції (Манхеттенська відстань)
+            // Якщо атакує свою ж клітину, дозволяємо атаку по гравцях у цій клітині
             const dist = Math.max(
                 Math.abs(attacker.x - data.targetX),
                 Math.abs(attacker.y - data.targetY),
@@ -106,9 +107,9 @@ wss.on('connection', function connection(ws) {
             log(
                 `[ATTACK] ${attacker.id} атакує (${data.targetX}, ${data.targetY}) з (${attacker.x}, ${attacker.y}), dist=${dist}`,
             );
-            if (dist !== 1) return; // Атакувати можна лише на відстані 1 клітина
+            if (dist !== 1 && dist !== 0) return; // Дозволяємо атаку на сусідню або свою клітину
 
-            // Знаходимо гравця у цільовій клітині
+            // Знаходимо гравця у цільовій клітині (крім себе)
             for (const [id, player] of players) {
                 if (
                     id !== (ws as any).id &&
@@ -116,14 +117,10 @@ wss.on('connection', function connection(ws) {
                     Math.round(player.y) === data.targetY
                 ) {
                     player.isHurt = true;
+                    player.hurtUntil = Date.now() + 400; // 400 мс
                     log(
                         `[HURT] ${player.id} отримав урон на (${player.x}, ${player.y}) від ${attacker.id}`,
                     );
-                    // Скидаємо hurt через 400мс
-                    setTimeout(() => {
-                        player.isHurt = false;
-                        log(`[HURT END] ${player.id} більше не hurt на (${player.x}, ${player.y})`);
-                    }, 400);
                 }
             }
         }
@@ -136,6 +133,14 @@ wss.on('connection', function connection(ws) {
 });
 
 setInterval(() => {
+    const now = Date.now();
+    for (const player of players.values()) {
+        if (player.isHurt && player.hurtUntil && now >= player.hurtUntil) {
+            player.isHurt = false;
+            player.hurtUntil = undefined;
+            log(`[HURT END] ${player.id} більше не hurt на (${player.x}, ${player.y})`);
+        }
+    }
     const allPlayers = Array.from(players.values());
     const msg = JSON.stringify({ type: 'players', players: allPlayers });
     wss.clients.forEach((client: WebSocket) => {
