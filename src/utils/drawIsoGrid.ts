@@ -1,4 +1,5 @@
 import { gridToIso } from './isometric.js';
+import { drawText } from './drawText.js';
 
 export function drawIsoGrid(
     ctx: CanvasRenderingContext2D,
@@ -6,7 +7,7 @@ export function drawIsoGrid(
     centerX: number,
     centerY: number,
     tileWidth: number,
-    tileHeight: number
+    tileHeight: number,
 ) {
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
@@ -23,6 +24,16 @@ export function drawIsoGrid(
             ctx.lineTo(isoX - tileWidth / 2, isoY);
             ctx.closePath();
             ctx.stroke();
+
+            // Виводимо координати по центру кожної ячейки
+            drawText(
+                ctx,
+                `${gx},${gy}`,
+                isoX,
+                isoY - 10, // трохи вище центру, щоб не перекривати лінії
+                '12px monospace',
+                '#fff',
+            );
         }
     }
     ctx.restore();

@@ -1,10 +1,10 @@
-export function drawLabel(
+export function drawText(
     ctx: CanvasRenderingContext2D,
     text: string,
     x: number,
     y: number,
     font: string = 'bold 22px Arial',
-    color: string = '#fff'
+    color: string = '#fff',
 ) {
     ctx.save();
     ctx.font = font;

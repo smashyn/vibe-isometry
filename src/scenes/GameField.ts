@@ -1,24 +1,11 @@
 import { drawIsoGrid } from '../utils/drawIsoGrid.js';
-import { drawLabel } from '../utils/drawLabel.js';
+import { drawText } from '../utils/drawText.js';
 import { gridToIso } from '../utils/isometric.js';
 import { Player } from '../entities/Player.js';
 import { EarthTile } from '../tiles/EarthTile.js';
 import { GrassTile } from '../tiles/GrassTile.js';
 import { StoneTile } from '../tiles/StoneTile.js';
 import { TileTextures } from '../tiles/TileTextures.js';
-
-function getTileByType(type: TileType, textures: TileTextures) {
-    switch (type) {
-        case 'earth':
-            return new EarthTile(textures);
-        case 'grass':
-            return new GrassTile(textures);
-        case 'stone':
-            return new StoneTile(textures);
-        default:
-            return null;
-    }
-}
 
 export type TileType = 'earth' | 'grass' | 'stone';
 
@@ -81,10 +68,10 @@ export class GameField {
     }
 
     render(ctx: CanvasRenderingContext2D, w: number, h: number) {
-        const gameFieldWidth = w * 0.65;
+        const gameFieldWidth = w;
         ctx.fillStyle = '#222';
         ctx.fillRect(0, 0, gameFieldWidth, h);
-        drawLabel(ctx, 'Ігрове поле', 20, 20);
+        drawText(ctx, 'Ігрове поле', 20, 20);
 
         // === Малюємо підземелля ===
         const centerX = gameFieldWidth / 2;
@@ -166,17 +153,5 @@ export class GameField {
             }
             ctx.restore();
         }
-
-        // Гравець завжди в центрі (ромб)
-        // ctx.save();
-        // ctx.beginPath();
-        // ctx.moveTo(gameFieldWidth / 2, h / 2 - this.tileHeight / 2);
-        // ctx.lineTo(gameFieldWidth / 2 + this.tileWidth / 2, h / 2);
-        // ctx.lineTo(gameFieldWidth / 2, h / 2 + this.tileHeight / 2);
-        // ctx.lineTo(gameFieldWidth / 2 - this.tileWidth / 2, h / 2);
-        // ctx.closePath();
-        // ctx.fillStyle = 'red';
-        // ctx.fill();
-        // ctx.restore();
     }
 }

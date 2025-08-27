@@ -4,6 +4,9 @@ node_modules/
 # TypeScript build output
 dist/
 
+# Maps
+server/maps
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

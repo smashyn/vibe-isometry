@@ -1,10 +1,32 @@
 export type TileType = 'earth' | 'grass' | 'stone';
 
+import { MapStorage } from './mapStorage';
+
 export interface Room {
     x: number; // left
     y: number; // top
     w: number; // width
     h: number; // height
+}
+
+export function generateAndSaveMap(
+    name: string,
+    width: number,
+    height: number,
+    roomCount: number,
+    minRoomSize: number,
+    maxRoomSize: number,
+    seed: number,
+) {
+    const { map, rooms } = generateDungeonWithSeed(
+        width,
+        height,
+        roomCount,
+        minRoomSize,
+        maxRoomSize,
+        seed,
+    );
+    MapStorage.saveMapToFile(name, { map, rooms, width, height, seed });
 }
 
 // Додаємо підтримку сідованого Math.random

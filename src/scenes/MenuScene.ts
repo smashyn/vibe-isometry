@@ -5,7 +5,7 @@ export class MenuScene implements Scene {
     private buttons: Button[];
     private canvas: HTMLCanvasElement | null = null;
     private onMouseDown = this.handleMouseDown.bind(this);
-    public isActive = false; // Додаємо прапорець активності
+    public isActive = false;
 
     constructor(onStart: () => void, onSettings: () => void) {
         this.buttons = [

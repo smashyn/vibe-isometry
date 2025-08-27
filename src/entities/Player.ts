@@ -137,7 +137,7 @@ export class Player implements Scene {
         if (!canvas) return;
         const w = canvas.width;
         const h = canvas.height;
-        const gameFieldWidth = w * 0.65;
+        const gameFieldWidth = w;
         if (this.mousePos.x < gameFieldWidth) {
             const centerX = gameFieldWidth / 2;
             const centerY = h / 2;
@@ -406,11 +406,14 @@ export class Player implements Scene {
         ) => void,
     ) {
         if (!sendMove) return;
+        // Визначаємо, чи гравець реально рухається
+        const isMoving =
+            Math.abs(this.x - this.targetX) > 0.01 || Math.abs(this.y - this.targetY) > 0.01;
         const state = {
             x: Math.round(this.x),
             y: Math.round(this.y),
             direction: this.direction,
-            isMoving: this.mouseDown,
+            isMoving,
             isAttacking: this.isAttacking,
             isRunAttacking: this.isRunAttacking,
             isDead: this.isDead,

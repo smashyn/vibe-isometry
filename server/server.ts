@@ -1,191 +1,131 @@
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { randomUUID } from 'crypto';
+import { Room } from './generateDungeon.ts';
+import { PlayerManager } from './playerManager.ts';
+import { log, isLogEnabled } from './utils/log.ts';
+import { WSMessageHandler } from './WSMessageHandler.ts';
+import { startPlayerUpdater } from './playerUpdater.ts';
 
-// Додаємо імпорт генератора карти
-import { Room, generateDungeonWithSeed } from './generateDungeon.ts';
+// === Типи для WebSocket-повідомлень ===
+
+export type WSClientMessage =
+    | { type: 'list_maps' }
+    | {
+          type: 'generate_map';
+          name: string;
+          width: number;
+          height: number;
+          roomCount: number;
+          minRoomSize: number;
+          maxRoomSize: number;
+          seed: number;
+      }
+    | { type: 'load_map'; name: string }
+    | {
+          type: 'move';
+          x: number;
+          y: number;
+          direction: string;
+          isMoving?: boolean;
+          isAttacking?: boolean;
+          isRunAttacking?: boolean;
+          isDead?: boolean;
+          isHurt?: boolean;
+          deathDirection?: string;
+      }
+    | { type: 'attack'; targetX: number; targetY: number };
+
+export type WSServerMessage =
+    | { type: 'id'; id: string }
+    | { type: 'maps_list'; maps: string[] }
+    | { type: 'map_generated'; name: string }
+    | { type: 'map'; width: number; height: number; map: any; rooms: any; seed?: number }
+    | { type: 'players'; players: any[] }
+    | { type: 'error'; message: string };
+
+// === WebSocket сервер ===
 
 interface MyWebSocket extends WebSocket {
     id?: string;
 }
 
-type PlayerData = {
-    id: string;
-    x: number;
-    y: number;
-    direction: string;
-    isMoving?: boolean;
-    isAttacking?: boolean;
-    isRunAttacking?: boolean;
-    isDead?: boolean;
-    isHurt?: boolean;
-    hurtUntil?: number;
-    deathDirection?: string;
-};
-
-const players = new Map<string, PlayerData>();
-
-// --- Генеруємо карту один раз при старті сервера ---
-const DUNGEON_WIDTH = 100;
-const DUNGEON_HEIGHT = 50;
-const DUNGEON_SEED = 54321;
-
-const { map: dungeonMap, rooms: dungeonRooms } = generateDungeonWithSeed(
-    DUNGEON_WIDTH,
-    DUNGEON_HEIGHT,
-    30, // roomCount
-    10, // minRoomSize
-    15, // maxRoomSize
-    DUNGEON_SEED,
-);
-
-function getRandomRoomCenter(rooms: Room[]) {
-    const room = rooms[Math.floor(Math.random() * rooms.length)];
-    return {
-        x: Math.floor(room.x + room.w / 2),
-        y: Math.floor(room.y + room.h / 2),
-    };
-}
+let dungeonRooms: Room[] = [];
 
 const server = createServer();
 const wss = new WebSocketServer({ server });
 
-let ENABLE_LOGS = true;
-function log(...args: any[]) {
-    if (ENABLE_LOGS) {
-        console.log(...args);
-    }
-}
-
 wss.on('connection', function connection(ws) {
-    const playerId = randomUUID();
+    const player = PlayerManager.createPlayer(dungeonRooms);
+    const playerId = player.id;
     const wsTyped = ws as MyWebSocket;
     wsTyped.id = playerId;
 
-    // --- Розміщуємо гравця у випадковій кімнаті ---
-    const { x, y } = getRandomRoomCenter(dungeonRooms);
+    const handler = new WSMessageHandler(ws, playerId);
 
-    players.set(playerId, {
-        id: playerId,
-        x,
-        y,
-        direction: 'down',
-        isMoving: false,
-        isAttacking: false,
-        isRunAttacking: false,
-        isDead: false,
-        isHurt: false,
-        deathDirection: 'down',
-    });
+    handler.send({ type: 'id', id: playerId });
 
-    ws.send(JSON.stringify({ type: 'id', id: playerId }));
-
-    // --- Надсилаємо карту клієнту ---
-    ws.send(
-        JSON.stringify({
-            type: 'map',
-            width: DUNGEON_WIDTH,
-            height: DUNGEON_HEIGHT,
-            map: dungeonMap,
-            rooms: dungeonRooms,
-        }),
-    );
-
-    ws.on('message', function incoming(message) {
-        let data;
+    ws.on('message', function incoming(message: string | Buffer) {
+        // --- Безпека: обмеження розміру повідомлення ---
+        const MAX_MSG_SIZE = 32 * 1024; // 32 KB
+        let data: WSClientMessage;
         try {
+            // Перевірка розміру
+            if (
+                (typeof message === 'string' && message.length > MAX_MSG_SIZE) ||
+                (Buffer.isBuffer(message) && message.length > MAX_MSG_SIZE)
+            ) {
+                log('[SECURITY] Повідомлення перевищує ліміт розміру');
+                handler.send({ type: 'error', message: 'Message too large' });
+                ws.close(1009, 'Message too large'); // 1009 = Close frame: Message too big
+                return;
+            }
+
             const msgStr = typeof message === 'string' ? message : message.toString();
             data = JSON.parse(msgStr);
-        } catch {
+        } catch (err) {
+            log('[ERROR] Некоректний JSON від клієнта:', err);
+            handler.send({ type: 'error', message: 'Invalid JSON format' });
             return;
         }
 
-        if (data.type === 'move') {
-            const player = players.get(playerId);
-            if (player) {
-                const prevX = player.x;
-                const prevY = player.y;
-                const prevDir = player.direction;
-                const prevIsMoving = player.isMoving;
-
-                player.x = data.x;
-                player.y = data.y;
-                player.direction = data.direction;
-                player.isMoving = !!data.isMoving;
-                player.isAttacking = !!data.isAttacking;
-                player.isRunAttacking = !!data.isRunAttacking;
-                player.isDead = !!data.isDead;
-                player.isHurt = !!data.isHurt;
-                player.deathDirection = data.deathDirection || player.deathDirection;
-
-                if (
-                    prevX !== player.x ||
-                    prevY !== player.y ||
-                    prevDir !== player.direction ||
-                    prevIsMoving !== player.isMoving
-                ) {
-                    log(
-                        `[MOVE] ${player.id} -> (${player.x}, ${player.y}) dir:${player.direction}`,
-                    );
-                }
-            }
-        }
-
-        if (data.type === 'attack') {
-            const attacker = players.get((ws as any).id);
-            if (!attacker) return;
-
-            const dist = Math.max(
-                Math.abs(attacker.x - data.targetX),
-                Math.abs(attacker.y - data.targetY),
-            );
-            log(
-                `[ATTACK] ${attacker.id} атакує (${data.targetX}, ${data.targetY}) з (${attacker.x}, ${attacker.y}), dist=${dist}`,
-            );
-            if (dist !== 1 && dist !== 0) return;
-
-            for (const [id, player] of players) {
-                if (
-                    id !== (ws as any).id &&
-                    Math.round(player.x) === data.targetX &&
-                    Math.round(player.y) === data.targetY
-                ) {
-                    player.isHurt = true;
-                    player.hurtUntil = Date.now() + 400;
-                    log(
-                        `[HURT] ${player.id} отримав урон на (${player.x}, ${player.y}) від ${attacker.id}`,
-                    );
-                }
-            }
+        try {
+            handler.handle(data);
+        } catch (err) {
+            log('[ERROR] Внутрішня помилка при обробці повідомлення:', err);
+            handler.send({ type: 'error', message: 'Internal server error' });
         }
     });
 
     ws.on('close', () => {
-        players.delete(playerId);
+        PlayerManager.removePlayer(playerId);
         log(`[DISCONNECT] ${playerId} вийшов з гри`);
     });
 });
 
-setInterval(() => {
-    const now = Date.now();
-    for (const player of players.values()) {
-        if (player.isHurt && player.hurtUntil && now >= player.hurtUntil) {
-            player.isHurt = false;
-            player.hurtUntil = undefined;
-            log(`[HURT END] ${player.id} більше не hurt на (${player.x}, ${player.y})`);
-        }
-    }
-    const allPlayers = Array.from(players.values());
-    const msg = JSON.stringify({ type: 'players', players: allPlayers });
-    wss.clients.forEach((client: WebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(msg);
-        }
-    });
-}, 50);
-
 server.listen(3000, () => {
     console.log('Server started on port 3000');
-    console.log('Логування дій:', ENABLE_LOGS ? 'УВІМКНЕНО' : 'ВИМКНЕНО');
-    console.log('Щоб вимкнути/увімкнути логування, змініть значення ENABLE_LOGS у server.ts');
+    console.log('Логування дій:', isLogEnabled() ? 'УВІМКНЕНО' : 'ВИМКНЕНО');
+    console.log('Щоб вимкнути/увімкнути логування, використовуйте setLogEnabled у utils/log.ts');
 });
+
+startPlayerUpdater(wss);
+
+// === Graceful shutdown ===
+function shutdown() {
+    console.log('\n[SERVER] Завершення роботи...');
+    wss.close(() => {
+        console.log('[SERVER] WebSocket сервер закрито');
+        server.close(() => {
+            console.log('[SERVER] HTTP сервер закрито');
+            process.exit(0);
+        });
+    });
+    // Якщо через 5 секунд не завершилось — форсовано
+    setTimeout(() => {
+        console.log('[SERVER] Форсоване завершення');
+        process.exit(1);
+    }, 5000);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

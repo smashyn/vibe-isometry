@@ -1,3 +1,5 @@
+import { GameSocket } from './GameSocket.js';
+
 export type PlayerNetData = {
     id: string;
     x: number;
@@ -25,12 +27,11 @@ type MapUpdate = {
 };
 
 export class PlayerNetworkClient {
-    private ws: WebSocket;
+    private socket: GameSocket;
     public players: Map<string, PlayerNetData> = new Map();
     private myId: string | null = null;
     private queuedJoin: { x: number; y: number; direction: string } | null = null;
 
-    // Додаємо збереження карти
     public map: any = null;
     public mapWidth: number = 0;
     public mapHeight: number = 0;
@@ -38,7 +39,7 @@ export class PlayerNetworkClient {
     public onMap?: (map: any, width: number, height: number, rooms: any) => void;
 
     /**
-     * @param serverUrl адреса сервера
+     * @param socket GameSocket екземпляр
      * @param onId отримати id від сервера (callback, викликається один раз)
      * @param startX стартова координата X
      * @param startY стартова координата Y
@@ -46,75 +47,61 @@ export class PlayerNetworkClient {
      * @param onMap callback для отримання карти (необов'язково)
      */
     constructor(
-        serverUrl: string,
+        socket: GameSocket,
         onId: (id: string) => void,
         startX: number,
         startY: number,
         direction: string,
         onMap?: (map: any, width: number, height: number, rooms: any) => void,
     ) {
-        this.ws = new WebSocket(serverUrl);
+        this.socket = socket;
         if (onMap) this.onMap = onMap;
 
-        this.ws.addEventListener('message', (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'id') {
-                    this.myId = data.id;
-                    onId(data.id); // Передаємо id у callback
-                    // Надсилаємо join тільки після отримання id
-                    if (this.queuedJoin) {
-                        this.sendJoin(
-                            this.queuedJoin.x,
-                            this.queuedJoin.y,
-                            this.queuedJoin.direction,
-                        );
-                        this.queuedJoin = null;
-                    }
-                } else if (data.type === 'players') {
-                    this.players.clear();
-                    for (const p of data.players) {
-                        this.players.set(p.id, p);
-                    }
-                } else if (data.type === 'map') {
-                    // --- Отримання карти від сервера ---
-                    this.map = data.map;
-                    this.mapWidth = data.width;
-                    this.mapHeight = data.height;
-                    this.mapRooms = data.rooms;
-                    if (this.onMap) {
-                        this.onMap(this.map, this.mapWidth, this.mapHeight, this.mapRooms);
-                    }
+        this.socket.onMessage((data) => {
+            if (data.type === 'id') {
+                this.myId = data.id;
+                onId(data.id);
+                if (this.queuedJoin) {
+                    this.sendJoin(this.queuedJoin.x, this.queuedJoin.y, this.queuedJoin.direction);
+                    this.queuedJoin = null;
                 }
-            } catch (e) {
-                // ignore invalid messages
+            } else if (data.type === 'players') {
+                console.log('players from server:', data.players);
+                console.log('myId:', this.myId);
+                this.players.clear();
+                for (const p of data.players) {
+                    this.players.set(p.id, p);
+                }
+            } else if (data.type === 'map') {
+                this.map = data.map;
+                this.mapWidth = data.width;
+                this.mapHeight = data.height;
+                this.mapRooms = data.rooms;
+                if (this.onMap) {
+                    this.onMap(this.map, this.mapWidth, this.mapHeight, this.mapRooms);
+                }
             }
         });
 
-        this.ws.addEventListener('open', () => {
-            // Надсилаємо join тільки після отримання id
-            if (this.myId) {
-                this.sendJoin(startX, startY, direction);
-            } else {
-                this.queuedJoin = { x: startX, y: startY, direction };
-            }
-        });
-    }
-
-    private sendJoin(x: number, y: number, direction: string) {
-        if (this.ws.readyState === WebSocket.OPEN && this.myId) {
-            this.ws.send(
-                JSON.stringify({
-                    type: 'join',
-                    x,
-                    y,
-                    direction,
-                }),
-            );
+        // Надсилаємо join тільки після отримання id
+        if (this.myId) {
+            this.sendJoin(startX, startY, direction);
+        } else {
+            this.queuedJoin = { x: startX, y: startY, direction };
         }
     }
 
-    // Викликайте цей метод при зміні координат або напрямку
+    private sendJoin(x: number, y: number, direction: string) {
+        if (this.myId) {
+            this.socket.send({
+                type: 'join',
+                x,
+                y,
+                direction,
+            });
+        }
+    }
+
     sendMove(
         x: number,
         y: number,
@@ -126,42 +113,32 @@ export class PlayerNetworkClient {
         isHurt?: boolean,
         deathDirection?: string,
     ) {
-        if (this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(
-                JSON.stringify({
-                    type: 'move',
-                    x,
-                    y,
-                    direction,
-                    isMoving,
-                    isAttacking,
-                    isRunAttacking,
-                    isDead,
-                    isHurt,
-                    deathDirection,
-                }),
-            );
-        }
+        this.socket.send({
+            type: 'move',
+            x,
+            y,
+            direction,
+            isMoving,
+            isAttacking,
+            isRunAttacking,
+            isDead,
+            isHurt,
+            deathDirection,
+        });
     }
 
     sendAttack(targetX: number, targetY: number) {
-        if (this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(
-                JSON.stringify({
-                    type: 'attack',
-                    targetX,
-                    targetY,
-                }),
-            );
-        }
+        this.socket.send({
+            type: 'attack',
+            targetX,
+            targetY,
+        });
     }
 
-    // Отримати всіх гравців (включаючи себе)
     getAllPlayers(): PlayerNetData[] {
         return Array.from(this.players.values());
     }
 
-    // Отримати інших гравців (без себе)
     getOtherPlayers(): PlayerNetData[] {
         if (!this.myId) return Array.from(this.players.values());
         return Array.from(this.players.values()).filter((p) => p.id !== this.myId);

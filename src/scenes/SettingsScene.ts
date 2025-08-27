@@ -1,11 +1,12 @@
 import { Scene } from '../engine/index.js';
 import { Button } from '../ui/Button.js';
+import { drawText } from '../utils/drawText.js'; // Додаємо імпорт
 
 export class SettingsScene implements Scene {
     private backButton: Button;
     private canvas: HTMLCanvasElement | null = null;
     private onMouseDown = this.handleMouseDown.bind(this);
-    public isActive = false; // Додаємо прапорець активності
+    public isActive = false;
 
     constructor(onBack: () => void) {
         this.backButton = new Button(400, 300, 200, 50, 'Назад', onBack, () => this.isActive);
@@ -44,10 +45,8 @@ export class SettingsScene implements Scene {
         ctx.fillStyle = '#181a1b';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        ctx.font = 'bold 32px sans-serif';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.fillText('Налаштування', ctx.canvas.width / 2, 120);
+        // Використовуємо drawText замість fillText
+        drawText(ctx, 'Налаштування', ctx.canvas.width / 2, 120, 'bold 32px sans-serif', '#fff');
         ctx.restore();
 
         this.backButton.render(ctx);

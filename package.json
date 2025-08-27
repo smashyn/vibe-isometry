@@ -1,10 +1,10 @@
 {
-    "name": "my-game-project",
+    "name": "vibe-isometry",
     "version": "1.0.0",
     "description": "A simple TypeScript game project using a canvas rendering engine.",
     "main": "src/index.ts",
     "scripts": {
-        "build": "tsc",
+        "build": "rimraf dist && tsc",
         "start": "npm run build && live-server --open=./index.html",
         "dev": "concurrently \"tsc --watch\" \"live-server --open=./index.html\"",
         "server": "ts-node server/server.ts",
@@ -16,11 +16,17 @@
         "live-server": "^1.2.2",
         "nodemon": "^3.1.10",
         "prettier": "^3.6.2",
+        "rimraf": "^6.0.1",
         "ts-node": "^10.9.2",
         "typescript": "^5.9.2"
     },
-    "keywords": [],
-    "author": "",
+    "keywords": [
+        "game",
+        "typescript",
+        "canvas",
+        "copilot"
+    ],
+    "author": "Stanislav Mashyn",
     "license": "ISC",
     "dependencies": {
         "ws": "^8.18.3"
