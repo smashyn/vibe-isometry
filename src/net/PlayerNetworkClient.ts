@@ -66,8 +66,6 @@ export class PlayerNetworkClient {
                     this.queuedJoin = null;
                 }
             } else if (data.type === 'players') {
-                console.log('players from server:', data.players);
-                console.log('myId:', this.myId);
                 this.players.clear();
                 for (const p of data.players) {
                     this.players.set(p.id, p);
