@@ -1,87 +1,96 @@
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { Room } from './generateDungeon.ts';
-import { PlayerManager } from './playerManager.ts';
-import { log, isLogEnabled } from './utils/log.ts';
-import { WSMessageHandler } from './WSMessageHandler.ts';
-import { startPlayerUpdater } from './playerUpdater.ts';
+import { log, isLogEnabled } from './utils/log';
+import { WSClientMessage, WSMessageHandler } from './ws/WSMessageHandler.ts';
+import { startPlayerUpdater } from './gameLogic/playerUpdater.ts';
+import { handleUserRoutes } from './rest/userManagement/userRoters.ts';
+import { validateWSMessageSize } from './utils/wsSecurity.ts';
+import url from 'url';
+import { UserManager } from './rest/userManagement/userManager';
+import { RoomManager } from './ws/roomManager'; // Додайте цей імпорт
 
-// === Типи для WebSocket-повідомлень ===
+const server = createServer((req, res) => {
+    log(`[HTTP] ${req.method} ${req.url}`);
 
-export type WSClientMessage =
-    | { type: 'list_maps' }
-    | {
-          type: 'generate_map';
-          name: string;
-          width: number;
-          height: number;
-          roomCount: number;
-          minRoomSize: number;
-          maxRoomSize: number;
-          seed: number;
-      }
-    | { type: 'load_map'; name: string }
-    | {
-          type: 'move';
-          x: number;
-          y: number;
-          direction: string;
-          isMoving?: boolean;
-          isAttacking?: boolean;
-          isRunAttacking?: boolean;
-          isDead?: boolean;
-          isHurt?: boolean;
-          deathDirection?: string;
-      }
-    | { type: 'attack'; targetX: number; targetY: number };
+    // --- CORS headers для всіх REST-запитів ---
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-export type WSServerMessage =
-    | { type: 'id'; id: string }
-    | { type: 'maps_list'; maps: string[] }
-    | { type: 'map_generated'; name: string }
-    | { type: 'map'; width: number; height: number; map: any; rooms: any; seed?: number }
-    | { type: 'players'; players: any[] }
-    | { type: 'error'; message: string };
+    // --- Відповідь на preflight (OPTIONS) ---
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
 
-// === WebSocket сервер ===
+    if (handleUserRoutes(req, res)) return;
 
-interface MyWebSocket extends WebSocket {
-    id?: string;
-}
+    // Якщо не REST і не WS — повертаємо 404
+    if (
+        req.headers.upgrade !== 'websocket' // не WS апгрейд
+    ) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+        return;
+    }
 
-let dungeonRooms: Room[] = [];
+    // --- Перевірка токена при апгрейді ---
+    const parsed = url.parse(req.url || '', true);
+    const token = parsed.query.token as string;
 
-const server = createServer();
-const wss = new WebSocketServer({ server });
+    // Дозволяємо апгрейд тільки якщо токен валідний
+    const username = UserManager.validateToken(token);
+    if (!token || !username) {
+        log(`[WS-UPGRADE] Відхилено підключення без валідного токена (${token})`);
+        res.writeHead(401);
+        res.end('Unauthorized');
+        return;
+    }
+
+    log(`[WS-UPGRADE] Підключення користувача "${username}" з токеном ${token}`);
+
+    wss.handleUpgrade(req, req.socket as any, Buffer.alloc(0), (ws) => {
+        // Додаємо username до ws для подальшого використання
+        (ws as any).username = username;
+        wss.emit('connection', ws, req);
+    });
+});
+
+const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', function connection(ws) {
-    const player = PlayerManager.createPlayer(dungeonRooms);
-    const playerId = player.id;
-    const wsTyped = ws as MyWebSocket;
-    wsTyped.id = playerId;
+    const username = (ws as any).username;
+    if (!username) {
+        ws.close();
+        return;
+    }
+    log(`[WS] Користувач "${username}" підключився`);
 
-    const handler = new WSMessageHandler(ws, playerId);
+    // --- Відправляємо список кімнат одразу після підключення ---
+    const handler = new WSMessageHandler(ws, username);
 
-    handler.send({ type: 'id', id: playerId });
+    handler.send({ type: 'rooms_list', rooms: RoomManager.listRooms() });
 
     ws.on('message', function incoming(message: string | Buffer) {
-        // --- Безпека: обмеження розміру повідомлення ---
         const MAX_MSG_SIZE = 32 * 1024; // 32 KB
         let data: WSClientMessage;
-        try {
-            // Перевірка розміру
-            if (
-                (typeof message === 'string' && message.length > MAX_MSG_SIZE) ||
-                (Buffer.isBuffer(message) && message.length > MAX_MSG_SIZE)
-            ) {
-                log('[SECURITY] Повідомлення перевищує ліміт розміру');
-                handler.send({ type: 'error', message: 'Message too large' });
-                ws.close(1009, 'Message too large'); // 1009 = Close frame: Message too big
-                return;
-            }
 
+        // --- Безпека: обмеження розміру повідомлення через утиліту ---
+        if (
+            !validateWSMessageSize(message, MAX_MSG_SIZE, (reason) => {
+                log(`[WS] ${username}: повідомлення перевищує ліміт: ${reason}`);
+                handler.send({ type: 'error', message: reason });
+                ws.close(1009, reason); // 1009 = Close frame: Message too big
+            })
+        ) {
+            return;
+        }
+
+        try {
             const msgStr = typeof message === 'string' ? message : message.toString();
             data = JSON.parse(msgStr);
+            log(`[WS] ${username}: отримано повідомлення`, data);
         } catch (err) {
             log('[ERROR] Некоректний JSON від клієнта:', err);
             handler.send({ type: 'error', message: 'Invalid JSON format' });
@@ -97,8 +106,18 @@ wss.on('connection', function connection(ws) {
     });
 
     ws.on('close', () => {
-        PlayerManager.removePlayer(playerId);
-        log(`[DISCONNECT] ${playerId} вийшов з гри`);
+        const username = (ws as any).username;
+        if (username) {
+            const userRoom = RoomManager.listRooms().find((room) =>
+                room.playerManager.users.has(username),
+            );
+            if (userRoom) {
+                userRoom.playerManager.removeUser(username);
+                userRoom.players = userRoom.players.filter((u) => u !== username);
+                log(`[DISCONNECT] ${username} вийшов з кімнати ${userRoom.id}`);
+            }
+        }
+        log(`[WS] Користувач "${username}" відключився`);
     });
 });
 

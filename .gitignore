@@ -4,8 +4,8 @@ node_modules/
 # TypeScript build output
 dist/
 
-# Maps
-server/maps
+# Game Data
+server/gameData/
 
 # Logs
 npm-debug.log*

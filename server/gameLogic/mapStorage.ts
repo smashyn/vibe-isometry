@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Room } from './generateDungeon';
 
-const MAPS_DIR = path.resolve(__dirname, 'maps');
+const MAPS_DIR = path.resolve(__dirname, 'gameData/maps');
 
 export interface SavedMapData {
     map: any;
