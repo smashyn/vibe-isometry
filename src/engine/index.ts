@@ -1,10 +1,4 @@
-export interface Scene {
-    update(delta: number): void;
-    render(ctx: CanvasRenderingContext2D): void;
-    onActivate(): void;
-    onDeactivate(): void;
-    isActive: boolean;
-}
+import { Scene } from '../scenes/Scene';
 
 export class Engine {
     private canvas: HTMLCanvasElement;

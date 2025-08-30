@@ -1,4 +1,4 @@
-import { Scene } from '../engine/index.js';
+import { Scene } from './Scene.js';
 import { apiBasePath } from '../config/apiConfig.js';
 import { drawText } from '../utils/drawText.js';
 import { Input } from '../ui/Input.js';

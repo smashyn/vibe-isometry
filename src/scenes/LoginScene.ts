@@ -1,5 +1,4 @@
-import { Scene } from '../engine/index.js';
-import { GameSocket } from '../net/GameSocket.js';
+import { Scene } from './Scene.js';
 import { apiBasePath } from '../config/apiConfig.js';
 import { Button } from '../ui/Button.js';
 import { Input } from '../ui/Input.js';

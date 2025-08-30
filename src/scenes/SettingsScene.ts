@@ -1,4 +1,4 @@
-import { Scene } from '../engine/index.js';
+import { Scene } from './Scene.js';
 import { Button } from '../ui/Button.js';
 import { drawText } from '../utils/drawText.js'; // Додаємо імпорт
 

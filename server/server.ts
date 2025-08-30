@@ -51,7 +51,6 @@ const server = createServer((req, res) => {
     log(`[WS-UPGRADE] Підключення користувача "${username}" з токеном ${token}`);
 
     wss.handleUpgrade(req, req.socket as any, Buffer.alloc(0), (ws) => {
-        // Додаємо username до ws для подальшого використання
         (ws as any).username = username;
         wss.emit('connection', ws, req);
     });
