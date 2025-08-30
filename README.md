@@ -1,4 +1,10 @@
-# My Game Project
+# Vibe Isometric
+
+## From dev
+
+This project is an experiment. ~98% of code has been written by copilot only providen by dev instructions. It's still in the non-working state because the architecture of project is not completed. I will update this description when It will have first working copy.
+
+## From Copilot
 
 This is a multiplayer game project built with TypeScript, featuring a modular client-server architecture. The client uses HTML Canvas for rendering and communicates with the server via WebSocket for real-time updates. The project is structured for scalability, maintainability, and easy extension with new scenes and UI components.
 
