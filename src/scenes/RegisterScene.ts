@@ -1,22 +1,64 @@
 import { Scene } from '../engine/index.js';
-import { GameSocket } from '../net/GameSocket.js';
-import { apiBasePath } from '../config/apiConfig.js'; // Додаємо імпорт
+import { apiBasePath } from '../config/apiConfig.js';
+import { drawText } from '../utils/drawText.js';
+import { Input } from '../ui/Input.js';
+import { Button } from '../ui/Button.js';
 
 export class RegisterScene implements Scene {
+    public isActive = true;
     private onRegisterSuccess: (username: string, password: string) => void;
-    private gameSocket: GameSocket;
-    private username: string = '';
-    private password: string = '';
     private error: string = '';
     private focusField: 'username' | 'password' | 'button' = 'username';
 
-    constructor(
-        onRegisterSuccess: (username: string, password: string) => void,
-        gameSocket: GameSocket,
-    ) {
+    private usernameInput: Input;
+    private passwordInput: Input;
+    private registerButton: Button;
+
+    constructor(onRegisterSuccess: (username: string, password: string) => void) {
         this.onRegisterSuccess = onRegisterSuccess;
-        this.gameSocket = gameSocket;
-        this.setupListeners();
+
+        this.usernameInput = new Input(
+            window.innerWidth / 2 - 120,
+            window.innerHeight / 2 - 20,
+            240,
+            32,
+            "Ім'я користувача",
+            '',
+            'text',
+        );
+        this.passwordInput = new Input(
+            window.innerWidth / 2 - 120,
+            window.innerHeight / 2 + 60,
+            240,
+            32,
+            'Пароль',
+            '',
+            'password',
+        );
+        this.registerButton = new Button(
+            window.innerWidth / 2 - 60,
+            window.innerHeight / 2 + 120,
+            120,
+            40,
+            'Зареєструватися',
+            () => this.register(),
+            () => this.isActive,
+        );
+    }
+
+    onActivate() {
+        this.isActive = true;
+        window.addEventListener('keydown', this.handleKeyDown);
+        const canvas = (window as any).engine?.canvas || document.querySelector('canvas');
+        if (canvas) canvas.addEventListener('click', this.handleClick);
+    }
+
+    onDeactivate() {
+        this.isActive = false;
+        window.removeEventListener('keydown', this.handleKeyDown);
+        const canvas = (window as any).engine?.canvas || document.querySelector('canvas');
+        if (canvas) canvas.removeEventListener('click', this.handleClick);
+        this.registerButton.onDeactivate();
     }
 
     update(delta: number): void {}
@@ -26,80 +68,52 @@ export class RegisterScene implements Scene {
         ctx.fillStyle = '#181c22';
         ctx.fillRect(0, 0, width, height);
 
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 32px Arial';
-        ctx.fillStyle = '#222';
-        ctx.fillText('Реєстрація', width / 2, height / 2 - 100);
+        // Заголовок
+        drawText(ctx, 'Реєстрація', width / 2, height / 2 - 100, 'bold 32px Arial', '#222');
 
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'left';
+        // Username Input
+        this.usernameInput.x = width / 2 - 120;
+        this.usernameInput.y = height / 2 - 20;
+        this.usernameInput.focused = this.focusField === 'username';
+        this.usernameInput.render(ctx);
 
-        // Username
-        ctx.fillStyle = this.focusField === 'username' ? '#1976d2' : '#444';
-        ctx.fillText("Ім'я користувача:", width / 2 - 120, height / 2 - 40);
-        ctx.strokeStyle = this.focusField === 'username' ? '#1976d2' : '#aaa';
-        ctx.strokeRect(width / 2 - 120, height / 2 - 20, 240, 32);
-        ctx.fillStyle = '#000';
-        ctx.fillText(this.username || '', width / 2 - 115, height / 2 + 2);
-
-        // Password
-        ctx.fillStyle = this.focusField === 'password' ? '#1976d2' : '#444';
-        ctx.fillText('Пароль:', width / 2 - 120, height / 2 + 40);
-        ctx.strokeStyle = this.focusField === 'password' ? '#1976d2' : '#aaa';
-        ctx.strokeRect(width / 2 - 120, height / 2 + 60, 240, 32);
-        ctx.fillStyle = '#000';
-        ctx.fillText(this.password.replace(/./g, '*'), width / 2 - 115, height / 2 + 82);
+        // Password Input
+        this.passwordInput.x = width / 2 - 120;
+        this.passwordInput.y = height / 2 + 60;
+        this.passwordInput.focused = this.focusField === 'password';
+        this.passwordInput.render(ctx);
 
         // Button
-        ctx.fillStyle = this.focusField === 'button' ? '#1976d2' : '#888';
-        ctx.fillRect(width / 2 - 60, height / 2 + 120, 120, 40);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Зареєструватися', width / 2, height / 2 + 148);
+        this.registerButton.x = width / 2 - 60;
+        this.registerButton.y = height / 2 + 120;
+        this.registerButton.focused = this.focusField === 'button';
+        this.registerButton.render(ctx);
 
         // Error
         if (this.error) {
-            ctx.font = '16px Arial';
-            ctx.fillStyle = '#d32f2f';
-            ctx.fillText(this.error, width / 2, height / 2 + 190);
+            drawText(ctx, this.error, width / 2, height / 2 + 190, '16px Arial', '#d32f2f');
         }
-        ctx.restore();
-    }
-
-    private setupListeners() {
-        window.addEventListener('keydown', this.handleKeyDown);
-    }
-
-    private removeListeners() {
-        window.removeEventListener('keydown', this.handleKeyDown);
     }
 
     private handleKeyDown = (e: KeyboardEvent) => {
         if (this.focusField === 'username') {
+            if (this.usernameInput.onKey(e)) return;
             if (e.key === 'Tab' || e.key === 'Enter') {
                 this.focusField = 'password';
                 e.preventDefault();
-            } else if (e.key === 'Backspace') {
-                this.username = this.username.slice(0, -1);
-            } else if (e.key.length === 1 && this.username.length < 32) {
-                this.username += e.key;
             }
         } else if (this.focusField === 'password') {
+            if (this.passwordInput.onKey(e)) return;
             if (e.key === 'Tab') {
                 this.focusField = 'button';
                 e.preventDefault();
             } else if (e.key === 'Enter') {
                 this.focusField = 'button';
                 e.preventDefault();
-            } else if (e.key === 'Backspace') {
-                this.password = this.password.slice(0, -1);
-            } else if (e.key.length === 1 && this.password.length < 32) {
-                this.password += e.key;
             }
         } else if (this.focusField === 'button') {
             if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
                 this.register();
             } else if (e.key === 'Tab') {
                 this.focusField = 'username';
@@ -108,22 +122,40 @@ export class RegisterScene implements Scene {
         }
     };
 
+    private handleClick = (e: MouseEvent) => {
+        const canvas = (window as any).engine?.canvas || document.querySelector('canvas');
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (this.usernameInput.setActiveByMouse(x, y)) {
+            this.focusField = 'username';
+        } else if (this.passwordInput.setActiveByMouse(x, y)) {
+            this.focusField = 'password';
+        } else if (this.registerButton.contains(x, y)) {
+            this.focusField = 'button';
+            this.register();
+        }
+    };
+
     private register() {
-        if (!this.username || !this.password) {
+        const username = this.usernameInput.value.trim();
+        const password = this.passwordInput.value;
+        if (!username || !password) {
             this.error = 'Введіть логін і пароль';
             return;
         }
         fetch(`${apiBasePath}/register`, {
-            // Використовуємо apiBasePath
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: this.username, password: this.password }),
+            body: JSON.stringify({ username, password }),
         })
             .then((res) => res.json())
             .then((data) => {
                 if (data === true || data.success) {
-                    this.removeListeners();
-                    this.onRegisterSuccess(this.username, this.password);
+                    this.onDeactivate();
+                    this.onRegisterSuccess(username, password);
                 } else {
                     this.error = data.error || 'Користувач вже існує';
                 }
@@ -134,6 +166,6 @@ export class RegisterScene implements Scene {
     }
 
     destroy() {
-        this.removeListeners();
+        this.onDeactivate();
     }
 }

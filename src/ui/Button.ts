@@ -9,6 +9,7 @@ export class Button {
     private canvas: HTMLCanvasElement | null = null;
     private isListenersActive = false;
     private getSceneIsActive: () => boolean;
+    public focused: boolean = false;
 
     constructor(
         x: number,
@@ -17,7 +18,7 @@ export class Button {
         height: number,
         label: string,
         onClick: () => void,
-        getSceneIsActive: () => boolean, // Додаємо функцію для перевірки активності сцени
+        getSceneIsActive: () => boolean,
     ) {
         this.x = x;
         this.y = y;
@@ -49,7 +50,6 @@ export class Button {
         }
     }
 
-    // Викликайте ці методи з onActivate/onDeactivate вашої сцени:
     public onActivate() {
         this.addListeners();
     }

@@ -1,6 +1,9 @@
 export interface Scene {
     update(delta: number): void;
     render(ctx: CanvasRenderingContext2D): void;
+    onActivate(): void;
+    onDeactivate(): void;
+    isActive: boolean;
 }
 
 export class Engine {
@@ -21,15 +24,13 @@ export class Engine {
     }
 
     setScene(scene: Scene) {
-        // Деактивуємо попередню сцену, якщо є метод onDeactivate
-        if (this.scene && typeof (this.scene as any).onDeactivate === 'function') {
-            (this.scene as any).onDeactivate();
+        // Деактивуємо попередню сцену
+        if (this.scene) {
+            this.scene.onDeactivate();
         }
         this.scene = scene;
-        // Активуємо нову сцену, якщо є метод onActivate
-        if (this.scene && typeof (this.scene as any).onActivate === 'function') {
-            (this.scene as any).onActivate();
-        }
+        // Активуємо нову сцену
+        this.scene.onActivate();
     }
 
     private loop(time: number) {

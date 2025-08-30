@@ -24,9 +24,7 @@ function loadUsers(): Record<string, User> {
 }
 
 function saveUsers(users: Record<string, User>) {
-    console.log('saveUsers', users, USERS_FILE);
-    const a = fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
-    console.log('saveUsers done', a);
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
 }
 
 function generateToken(): string {

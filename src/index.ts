@@ -43,17 +43,17 @@ function onLoginSuccess(username: string, token: string) {
 
 // Додаємо функцію для переходу на реєстрацію
 function goToRegister() {
-    registerScene = new RegisterScene(onRegisterSuccess, gameSocket);
+    registerScene = new RegisterScene(onRegisterSuccess);
     engine.setScene(registerScene);
 }
 
 // Після успішної реєстрації можна одразу логінити:
 function onRegisterSuccess(username: string, password: string) {
-    loginScene = new LoginScene(onLoginSuccess, gameSocket, goToRegister, username, password);
+    loginScene = new LoginScene(onLoginSuccess, goToRegister, username, password);
     engine.setScene(loginScene);
 }
 
-loginScene = new LoginScene(onLoginSuccess, gameSocket, goToRegister);
+loginScene = new LoginScene(onLoginSuccess, goToRegister);
 engine.setScene(loginScene);
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
