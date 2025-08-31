@@ -1,5 +1,6 @@
 import { apiBasePath } from '../config/apiConfig.js';
 import { getCookie } from '../utils/cookie.js';
+import { apiFetch } from '../utils/apiFetch.js';
 
 type GameSocketListener = (data: any) => void;
 
@@ -16,22 +17,9 @@ export class GameSocket {
         this.token = getCookie('token') ?? null;
 
         if (!this.username) {
-            fetch(`${apiBasePath}/verify`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ token: this.token }),
-            })
-                .then((response) => {
-                    if (!response.ok) {
-                        throw new Error('Token verification failed');
-                    }
-                    return response.json();
-                })
+            apiFetch(`${apiBasePath}/verify`, { method: 'POST' }, { token: this.token })
                 .then((data) => {
                     this.username = data.username;
-                    console.log('Username verified:', this.username);
                 })
                 .catch((error) => {
                     console.error('Error verifying token:', error);
@@ -50,10 +38,12 @@ export class GameSocket {
     }
 
     send(data: any) {
+        // ???
         if (this.token) {
             data.token = this.token;
         }
 
+        // ???
         if (this.username) {
             data.username = this.username;
         }

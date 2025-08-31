@@ -9,7 +9,7 @@ export class SettingsScene implements Scene {
     public isActive = false;
 
     constructor(onBack: () => void) {
-        this.backButton = new Button(400, 300, 200, 50, 'Назад', onBack, () => this.isActive);
+        this.backButton = new Button('Назад', onBack, () => this.isActive);
     }
 
     onActivate() {
@@ -49,6 +49,6 @@ export class SettingsScene implements Scene {
         drawText(ctx, 'Налаштування', ctx.canvas.width / 2, 120, 'bold 32px sans-serif', '#fff');
         ctx.restore();
 
-        this.backButton.render(ctx);
+        this.backButton.render(ctx, ctx.canvas.width / 2 - 100, ctx.canvas.height / 2 + 60);
     }
 }

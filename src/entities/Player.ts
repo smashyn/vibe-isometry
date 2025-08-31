@@ -1,4 +1,4 @@
-import { Scene } from '../engine/index.js';
+import { Scene } from '../scenes/Scene.js';
 import { isoToGrid } from '../utils/isometric.js';
 import { PlayerAnimation, RunDirection } from '../sprites/PlayerAnimation.js';
 import { PlayerIdleAnimation, IdleDirection } from '../sprites/PlayerIdleAnimation.js';
@@ -92,6 +92,13 @@ export class Player implements Scene {
             }
         });
     }
+    onActivate(): void {
+        throw new Error('Method not implemented.');
+    }
+    onDeactivate(): void {
+        throw new Error('Method not implemented.');
+    }
+    isActive: boolean = false;
 
     /**
      * Обробник натискання кнопки миші. Вмикає режим руху та оновлює ціль.

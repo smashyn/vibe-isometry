@@ -1,11 +1,11 @@
-import { drawIsoGrid } from '../utils/drawIsoGrid.js';
-import { drawText } from '../utils/drawText.js';
-import { gridToIso } from '../utils/isometric.js';
-import { Player } from '../entities/Player.js';
-import { EarthTile } from '../tiles/EarthTile.js';
-import { GrassTile } from '../tiles/GrassTile.js';
-import { StoneTile } from '../tiles/StoneTile.js';
-import { TileTextures } from '../tiles/TileTextures.js';
+import { drawIsoGrid } from '../../utils/drawIsoGrid.js';
+import { drawText } from '../../utils/drawText.js';
+import { gridToIso } from '../../utils/isometric.js';
+import { Player } from '../../entities/Player.js';
+import { EarthTile } from '../../tiles/EarthTile.js';
+import { GrassTile } from '../../tiles/GrassTile.js';
+import { StoneTile } from '../../tiles/StoneTile.js';
+import { TileTextures } from '../../tiles/TileTextures.js';
 
 export type TileType = 'earth' | 'grass' | 'stone';
 

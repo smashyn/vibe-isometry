@@ -1,13 +1,13 @@
-import { PlayerNetData } from '../net/PlayerNetworkClient.js';
-import { PlayerAnimation, RunDirection } from '../sprites/PlayerAnimation.js';
-import { PlayerIdleAnimation, IdleDirection } from '../sprites/PlayerIdleAnimation.js';
-import { PlayerAttackAnimation, AttackDirection } from '../sprites/PlayerAttackAnimation.js';
+import { PlayerNetData } from '../../net/PlayerNetworkClient.js';
+import { PlayerAnimation, RunDirection } from '../../sprites/PlayerAnimation.js';
+import { PlayerIdleAnimation, IdleDirection } from '../../sprites/PlayerIdleAnimation.js';
+import { PlayerAttackAnimation, AttackDirection } from '../../sprites/PlayerAttackAnimation.js';
 import {
     PlayerRunAttackAnimation,
     RunAttackDirection,
-} from '../sprites/PlayerRunAttackAnimation.js';
-import { PlayerDeathAnimation, DeathDirection } from '../sprites/PlayerDeathAnimation.js';
-import { PlayerHurtAnimation, HurtDirection } from '../sprites/PlayerHurtAnimation.js';
+} from '../../sprites/PlayerRunAttackAnimation.js';
+import { PlayerDeathAnimation, DeathDirection } from '../../sprites/PlayerDeathAnimation.js';
+import { PlayerHurtAnimation, HurtDirection } from '../../sprites/PlayerHurtAnimation.js';
 
 type AnimationState = {
     attackTime: number;

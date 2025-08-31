@@ -9,8 +9,8 @@ export class MenuScene implements Scene {
 
     constructor(onStart: () => void, onSettings: () => void) {
         this.buttons = [
-            new Button(400, 200, 200, 50, 'Почати грати', onStart, () => this.isActive),
-            new Button(400, 270, 200, 50, 'Налаштування', onSettings, () => this.isActive),
+            new Button('Почати грати', onStart, () => this.isActive),
+            new Button('Налаштування', onSettings, () => this.isActive),
         ];
     }
 
@@ -56,6 +56,8 @@ export class MenuScene implements Scene {
         ctx.fillText('Головне меню', ctx.canvas.width / 2, 120);
         ctx.restore();
 
-        this.buttons.forEach((btn) => btn.render(ctx));
+        this.buttons.forEach((btn) =>
+            btn.render(ctx, ctx.canvas.width / 2 - 100, 200 + this.buttons.indexOf(btn) * 70),
+        );
     }
 }

@@ -36,10 +36,6 @@ export class MapLobby implements Scene {
 
         // Кнопка генерації карти
         this.generateButton = new Button(
-            400,
-            130,
-            300,
-            40,
             'Згенерувати нову карту',
             () => this.handleGenerateMap(),
             () => this.isActive,
@@ -47,10 +43,6 @@ export class MapLobby implements Scene {
 
         // Кнопка "Повернутись назад"
         this.backButton = new Button(
-            400,
-            600,
-            300,
-            40,
             'Повернутись назад',
             () => this.onBack(),
             () => this.isActive,
@@ -76,10 +68,6 @@ export class MapLobby implements Scene {
         this.mapButtons = this.maps.map(
             (name, i) =>
                 new Button(
-                    400,
-                    180 + i * 70,
-                    300,
-                    50,
                     name,
                     () => this.handleMapClick(name),
                     () => this.isActive && !this.loadingMapName,
@@ -119,8 +107,10 @@ export class MapLobby implements Scene {
         );
         ctx.restore();
 
-        this.generateButton.render(ctx);
-        this.mapButtons.forEach((btn) => btn.render(ctx));
-        this.backButton.render(ctx);
+        this.generateButton.render(ctx, ctx.canvas.width / 2 - 120, ctx.canvas.height / 2 + 60);
+        this.mapButtons.forEach((btn) =>
+            btn.render(ctx, ctx.canvas.width / 2 - 120, ctx.canvas.height / 2 + 60),
+        );
+        this.backButton.render(ctx, ctx.canvas.width / 2 - 120, ctx.canvas.height / 2 + 60);
     }
 }

@@ -1,10 +1,10 @@
-import { Scene } from './Scene.js';
-import { Player } from '../entities/Player.js';
+import { Scene } from '../Scene.js';
+import { Player } from '../../entities/Player.js';
 import { GameField } from './GameField.js';
-import { TileTextures } from '../tiles/TileTextures.js';
-import { PlayerNetworkClient } from '../net/PlayerNetworkClient.js';
+import { TileTextures } from '../../tiles/TileTextures.js';
+import { PlayerNetworkClient } from '../../net/PlayerNetworkClient.js';
 import { OtherPlayersRenderer } from './OtherPlayersRenderer.js';
-import { GameSocket } from '../net/GameSocket.js';
+import { GameSocket } from '../../net/GameSocket.js';
 
 export class MainScene implements Scene {
     private showGrid = false;

@@ -1,4 +1,5 @@
 import { Scene } from '../scenes/Scene';
+import { CanvasContext } from './CanvasContext';
 
 export class Engine {
     private canvas: HTMLCanvasElement;
@@ -7,12 +8,9 @@ export class Engine {
     private scene?: Scene;
 
     constructor(canvasId: string) {
-        const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
-        if (!canvas) throw new Error('Canvas not found');
-        this.canvas = canvas;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Failed to get context');
-        this.ctx = ctx;
+        const canvasCtx = CanvasContext.getInstance(canvasId);
+        this.canvas = canvasCtx.canvas;
+        this.ctx = canvasCtx.ctx;
         this.loop = this.loop.bind(this);
         requestAnimationFrame(this.loop);
     }

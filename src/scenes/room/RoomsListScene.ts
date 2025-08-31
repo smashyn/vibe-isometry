@@ -1,9 +1,9 @@
-import { Scene } from './Scene.js';
-import { Button } from '../ui/Button.js';
-import { drawText } from '../utils/drawText.js';
-import { GameSocket } from '../net/GameSocket.js';
-import { Modal } from '../ui/Modal.js';
-import { Input } from '../ui/Input.js';
+import { Scene } from '../Scene.js';
+import { Button } from '../../ui/Button.js';
+import { drawText } from '../../utils/drawText.js';
+import { GameSocket } from '../../net/GameSocket.js';
+import { Modal } from '../../ui/Modal.js';
+import { Input } from '../../ui/Input.js';
 
 type Room = {
     id: string;
@@ -29,24 +29,18 @@ export class RoomsListScene implements Scene {
         this.onJoinRoom = onJoinRoom;
 
         this.createRoomButton = new Button(
-            40,
-            40,
-            180,
-            44,
             'Створити кімнату',
             () => this.openCreateRoomModal(),
             () => this.isActive,
         );
 
         // Інпут для назви кімнати в модалці
-        this.roomNameInput = new Input(0, 0, 320, 36, 'Назва кімнати', '', 'text');
+        this.roomNameInput = new Input('', 'text', {
+            placeholder: 'Назва кімнати',
+        });
 
         // Кнопка "Створити" в модалці
         this.modalCreateButton = new Button(
-            0,
-            0,
-            120,
-            36,
             'Створити',
             () => this.createRoom(),
             () => this.isActive,
@@ -59,16 +53,11 @@ export class RoomsListScene implements Scene {
             () => {},
             (ctx, mx, my, mw, mh) => {
                 // Рендер інпута
-                this.roomNameInput.x = mx + 40;
-                this.roomNameInput.y = my + 70;
-                this.roomNameInput.w = mw - 80;
                 this.roomNameInput.focused = true;
-                this.roomNameInput.render(ctx);
+                this.roomNameInput.render(ctx, mx + 40, my + 70);
 
                 // Рендер кнопки
-                this.modalCreateButton.x = mx + mw / 2 - 60;
-                this.modalCreateButton.y = my + mh - 90;
-                this.modalCreateButton.render(ctx);
+                this.modalCreateButton.render(ctx, mx + mw / 2 - 60, my + mh - 90);
             },
         );
     }
@@ -99,9 +88,7 @@ export class RoomsListScene implements Scene {
 
         drawText(ctx, 'Список кімнат', width / 2, 60, 'bold 32px Arial', '#fff');
 
-        this.createRoomButton.x = 40;
-        this.createRoomButton.y = 40;
-        this.createRoomButton.render(ctx);
+        this.createRoomButton.render(ctx, 40, 40);
 
         if (this.error) {
             drawText(ctx, this.error, width / 2, 100, '16px Arial', '#d32f2f');
@@ -112,15 +99,11 @@ export class RoomsListScene implements Scene {
         for (const room of this.rooms) {
             drawText(ctx, room.name, 100, y + 20, '20px Arial', '#fff');
             const btn = new Button(
-                width - 180,
-                y,
-                120,
-                40,
                 'Join',
                 () => this.joinRoom(room.id),
                 () => this.isActive,
             );
-            btn.render(ctx);
+            btn.render(ctx, width - 180, y);
             this.joinButtons.push(btn);
             y += 60;
         }
