@@ -1,4 +1,4 @@
-import { RoomManager } from '../roomManager';
+import { RoomManager } from '../../gameLogic/roomManager';
 import { allClients } from '../WSMessageHandler';
 
 export function handleListRooms(send: any) {

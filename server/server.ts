@@ -7,15 +7,16 @@ import { handleUserRoutes } from './rest/userManagement/userRoters.ts';
 import { validateWSMessageSize } from './utils/wsSecurity.ts';
 import url from 'url';
 import { UserManager } from './rest/userManagement/userManager';
-import { RoomManager } from './ws/roomManager'; // Додайте цей імпорт
+import { RoomManager } from './gameLogic/roomManager'; // Додайте цей імпорт
+import { serverConfig } from './serverConfig';
 
 const server = createServer((req, res) => {
     log(`[HTTP] ${req.method} ${req.url}`);
 
     // --- CORS headers для всіх REST-запитів ---
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Origin', serverConfig.cors.origin);
+    res.setHeader('Access-Control-Allow-Methods', serverConfig.cors.methods);
+    res.setHeader('Access-Control-Allow-Headers', serverConfig.cors.headers);
 
     // --- Відповідь на preflight (OPTIONS) ---
     if (req.method === 'OPTIONS') {
@@ -72,7 +73,7 @@ wss.on('connection', function connection(ws) {
     handler.send({ type: 'rooms_list', rooms: RoomManager.listRooms() });
 
     ws.on('message', function incoming(message: string | Buffer) {
-        const MAX_MSG_SIZE = 32 * 1024; // 32 KB
+        const MAX_MSG_SIZE = serverConfig.wsMaxMessageSize;
         let data: WSClientMessage;
 
         // --- Безпека: обмеження розміру повідомлення через утиліту ---
@@ -120,8 +121,8 @@ wss.on('connection', function connection(ws) {
     });
 });
 
-server.listen(3000, () => {
-    console.log('Server started on port 3000');
+server.listen(serverConfig.port, () => {
+    console.log(`Server started on port ${serverConfig.port}`);
     console.log('Логування дій:', isLogEnabled() ? 'УВІМКНЕНО' : 'ВИМКНЕНО');
     console.log('Щоб вимкнути/увімкнути логування, використовуйте setLogEnabled у utils/log.ts');
 });
@@ -142,7 +143,7 @@ function shutdown() {
     setTimeout(() => {
         console.log('[SERVER] Форсоване завершення');
         process.exit(1);
-    }, 5000);
+    }, serverConfig.gracefulShutdownTimeout);
 }
 
 process.on('SIGINT', shutdown);

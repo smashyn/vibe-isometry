@@ -1,4 +1,4 @@
-import { RoomManager } from '../roomManager';
+import { RoomManager } from '../../gameLogic/roomManager';
 export function handleEditRoom(send: any, data: any, username: string) {
     const ok = RoomManager.editRoom(data.id, username, data.name);
     send({

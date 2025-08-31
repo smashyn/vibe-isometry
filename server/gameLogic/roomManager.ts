@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { PlayerManager as PlayerManagerClass } from '../gameLogic/playerManager';
+import { PlayerManager as PlayerManagerClass } from './playerManager';
 
 export type RoomStatus = 'ACTIVE' | 'GAME' | 'INACTIVE';
 
@@ -21,7 +21,14 @@ export const RoomManager = {
     createRoom(name: string, admin: string): Room {
         const id = uuidv4();
         const playerManager = new PlayerManagerClass();
-        const room: Room = { id, name, admin, players: [admin], status: 'ACTIVE', playerManager };
+        const room: Room = {
+            id,
+            name,
+            admin,
+            players: [admin],
+            status: 'ACTIVE',
+            playerManager,
+        };
         rooms[id] = room;
         // Додаємо адміна до менеджера гравців цієї кімнати
         room.playerManager.addUser(admin);

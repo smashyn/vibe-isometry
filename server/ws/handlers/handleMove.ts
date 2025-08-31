@@ -1,4 +1,4 @@
-import { RoomManager } from '../roomManager';
+import { RoomManager } from '../../gameLogic/roomManager';
 import { log } from '../../utils/log';
 import type { WSClientMessage } from '../WSMessageHandler';
 

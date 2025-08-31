@@ -1,4 +1,4 @@
-import { RoomManager } from '../roomManager';
+import { RoomManager } from '../../gameLogic/roomManager';
 export function handleDeleteRoom(send: any, data: any, username: string) {
     const ok = RoomManager.deleteRoom(data.id, username);
     send({

@@ -1,29 +1,5 @@
 import { randomUUID } from 'crypto';
-
-export type CharacterData = {
-    id: string;
-    name: string;
-    class: string;
-    x: number;
-    y: number;
-    direction: string;
-    isMoving?: boolean;
-    isAttacking?: boolean;
-    isRunAttacking?: boolean;
-    isDead?: boolean;
-    isHurt?: boolean;
-    hurtUntil?: number;
-    deathDirection?: string;
-};
-
-export type UserData = {
-    id: string;
-    username: string;
-    token?: string;
-    characters: CharacterData[];
-    activeCharacterId?: string;
-    activeRoom?: string; // <-- Додаємо activeRoom
-};
+import { CharacterData, UserData } from './playerTypes.js';
 
 export class PlayerManager {
     users = new Map<string, UserData>();
@@ -34,7 +10,13 @@ export class PlayerManager {
     addUser(username: string, token?: string) {
         if (!this.users.has(username)) {
             const id = randomUUID();
-            this.users.set(username, { id, username, token, characters: [] });
+            this.users.set(username, {
+                id,
+                username,
+                token,
+                characters: [],
+                email: '',
+            });
         } else if (token) {
             // Оновлюємо токен, якщо користувач вже існує
             const user = this.users.get(username)!;

@@ -10,7 +10,7 @@ import { handleEditRoom } from './handlers/handleEditRoom';
 import { handleDeleteRoom } from './handlers/handleDeleteRoom';
 import { handleJoinRoom } from './handlers/handleJoinRoom';
 import { handleLeaveRoom } from './handlers/handleLeaveRoom';
-import { RoomManager } from './roomManager';
+import { RoomManager } from '../gameLogic/roomManager';
 
 // Зберігаємо всі підключення
 export const allClients = new Set<any>();

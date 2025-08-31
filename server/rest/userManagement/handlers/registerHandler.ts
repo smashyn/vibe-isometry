@@ -8,14 +8,14 @@ export function registerHandler(req: any, res: any): void {
     });
     req.on('end', () => {
         try {
-            const { username, password } = JSON.parse(body);
-            if (!username || !password) {
-                logger.warning('[REGISTER] Відхилено: не вказано username або password');
+            const { username, password, email } = JSON.parse(body);
+            if (!username || !password || !email) {
+                logger.warning('[REGISTER] Відхилено: не вказано username, password або email');
                 res.writeHead(400);
-                res.end(JSON.stringify({ error: 'Username and password required' }));
+                res.end(JSON.stringify({ error: 'Username, password and email are required' }));
                 return;
             }
-            if (UserManager.register(username, password)) {
+            if (UserManager.register(username, password, email)) {
                 logger.info(`[REGISTER] Успішно: ${username}`);
                 res.writeHead(200);
                 res.end(JSON.stringify({ success: true }));

@@ -2,7 +2,7 @@ import { PlayerManager } from './playerManager';
 import { log } from '../utils/log';
 import { WebSocket } from 'ws';
 import { WSServerMessage } from '../ws/WSMessageHandler';
-import { RoomManager } from '../ws/roomManager';
+import { RoomManager } from './roomManager';
 
 /**
  * Запускає періодичне оновлення стану гравців і розсилку їхнього стану всім клієнтам.

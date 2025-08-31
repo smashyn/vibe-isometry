@@ -22,7 +22,7 @@ export function loginHandler(req: any, res: any): void {
                 res.end(JSON.stringify({ error: 'User does not exist' }));
                 return;
             }
-            if (UserManager.authenticate(username, password)) {
+            if (UserManager.authenticate(username, password).success) {
                 // Генеруємо токен для користувача
                 const token = UserManager.issueToken(username);
                 logger.info(`[LOGIN] Успішно: ${username}`);

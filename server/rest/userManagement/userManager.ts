@@ -1,11 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
+import { hashPassword, verifyPassword } from './passwordUtils';
+import { generateToken } from './tokenUtils';
 
 export type Character = { name: string; class: string };
 type User = {
     username: string;
-    password: string;
+    password: string; // зберігається хеш
+    email: string;
     characters?: Character[];
     token?: string;
     tokenExpiresAt?: number; // timestamp (ms)
@@ -27,15 +29,12 @@ function saveUsers(users: Record<string, User>) {
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
 }
 
-function generateToken(): string {
-    return crypto.randomBytes(32).toString('hex');
-}
-
 export const UserManager = {
-    register(username: string, password: string): boolean {
+    register(username: string, password: string, email: string): boolean {
         const users = loadUsers();
         if (users[username]) return false;
-        users[username] = { username, password, characters: [] };
+        const hashedPassword = hashPassword(password);
+        users[username] = { username, password: hashedPassword, characters: [], email };
         saveUsers(users);
         return true;
     },
@@ -47,7 +46,14 @@ export const UserManager = {
     authenticate(username: string, password: string): { success: boolean; token?: string } {
         const users = loadUsers();
         const user = users[username];
-        if (!!user && user.password === password) {
+
+        console.log(
+            'user',
+            user && verifyPassword(password, user.password) === true,
+            verifyPassword(password, user.password),
+        );
+
+        if (user && verifyPassword(password, user.password) === true) {
             // Видаємо новий токен при кожному логіні
             const token = this.issueToken(username);
             return { success: true, token: token! };
@@ -79,7 +85,7 @@ export const UserManager = {
     resetPassword(username: string, newPassword: string): boolean {
         const users = loadUsers();
         if (!users[username]) return false;
-        users[username].password = newPassword;
+        users[username].password = hashPassword(newPassword);
         saveUsers(users);
         return true;
     },
