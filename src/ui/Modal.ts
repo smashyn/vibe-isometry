@@ -1,3 +1,6 @@
+import { Button } from './Button.js';
+import { drawText } from '../utils/drawText.js';
+
 export class Modal {
     public isOpen = false;
     public title: string;
@@ -10,6 +13,7 @@ export class Modal {
         w: number,
         h: number,
     ) => void;
+    private closeButton: Button;
 
     constructor(
         title: string,
@@ -27,6 +31,13 @@ export class Modal {
         this.message = message;
         this.onClose = onClose;
         this.contentRenderFn = contentRenderFn;
+
+        // Кнопка "Закрити"
+        this.closeButton = new Button(
+            'Закрити',
+            () => this.close(),
+            () => this.isOpen,
+        );
     }
 
     setContentRenderer(
@@ -55,7 +66,7 @@ export class Modal {
         ctx.globalAlpha = 1;
 
         // Вікно
-        const mw = 400,
+        const mw = 480,
             mh = 200;
         const mx = (width - mw) / 2,
             my = (height - mh) / 2;
@@ -66,17 +77,11 @@ export class Modal {
         ctx.strokeRect(mx, my, mw, mh);
 
         // Заголовок
-        ctx.font = 'bold 24px Arial';
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.title, width / 2, my + 40);
+        drawText(ctx, this.title, width / 2, my + 10, 'bold 24px Arial', '#fff', 'center');
 
         // Повідомлення (якщо немає кастомного контенту)
         if (!this.contentRenderFn) {
-            ctx.font = '18px Arial';
-            ctx.fillStyle = '#eee';
-            ctx.textAlign = 'center';
-            ctx.fillText(this.message, width / 2, my + 100);
+            drawText(ctx, this.message, width / 2, my + 100, '18px Arial', '#eee', 'center');
         }
 
         // Кастомний контент
@@ -84,12 +89,8 @@ export class Modal {
             this.contentRenderFn(ctx, mx, my, mw, mh);
         }
 
-        // Кнопка "Закрити"
-        ctx.font = 'bold 18px Arial';
-        ctx.fillStyle = '#1976d2';
-        ctx.fillRect(mx + mw / 2 - 60, my + mh - 50, 120, 36);
-        ctx.fillStyle = '#fff';
-        ctx.fillText('Закрити', width / 2, my + mh - 25);
+        // Кнопка "Закрити" через компонент Button
+        this.closeButton.render(ctx, mx + mw / 2 - 120, my + mh - 50);
 
         ctx.restore();
     }
@@ -100,14 +101,16 @@ export class Modal {
             mh = 200;
         const mx = (width - mw) / 2,
             my = (height - mh) / 2;
-        // Якщо клік по кнопці "Закрити"
+        // Використовуємо contains для кнопки
+        const btnX = mx + mw / 2 - 60;
+        const btnY = my + mh - 50;
         if (
-            x >= mx + mw / 2 - 60 &&
-            x <= mx + mw / 2 + 60 &&
-            y >= my + mh - 50 &&
-            y <= my + mh - 14
+            x >= btnX &&
+            x <= btnX + this.closeButton.width &&
+            y >= btnY &&
+            y <= btnY + this.closeButton.height
         ) {
-            this.close();
+            this.closeButton.onClick();
             return true;
         }
         return false;

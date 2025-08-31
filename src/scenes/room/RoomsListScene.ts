@@ -4,6 +4,7 @@ import { drawText } from '../../utils/drawText.js';
 import { GameSocket } from '../../net/GameSocket.js';
 import { Modal } from '../../ui/Modal.js';
 import { Input } from '../../ui/Input.js';
+import { renderCenteredUI } from '../../utils/renderCenteredUI.js';
 
 type Room = {
     id: string;
@@ -35,7 +36,7 @@ export class RoomsListScene implements Scene {
         );
 
         // Інпут для назви кімнати в модалці
-        this.roomNameInput = new Input('', 'text', {
+        this.roomNameInput = new Input('Room Name', '', 'text', {
             placeholder: 'Назва кімнати',
         });
 
@@ -51,13 +52,9 @@ export class RoomsListScene implements Scene {
             'Створення кімнати',
             '',
             () => {},
-            (ctx, mx, my, mw, mh) => {
-                // Рендер інпута
+            (ctx) => {
                 this.roomNameInput.focused = true;
-                this.roomNameInput.render(ctx, mx + 40, my + 70);
-
-                // Рендер кнопки
-                this.modalCreateButton.render(ctx, mx + mw / 2 - 60, my + mh - 90);
+                renderCenteredUI(ctx, [this.roomNameInput, this.modalCreateButton]);
             },
         );
     }
@@ -103,7 +100,7 @@ export class RoomsListScene implements Scene {
                 () => this.joinRoom(room.id),
                 () => this.isActive,
             );
-            btn.render(ctx, width - 180, y);
+            btn.render(ctx, width - 340, y);
             this.joinButtons.push(btn);
             y += 60;
         }
