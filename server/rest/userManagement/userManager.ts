@@ -1,7 +1,7 @@
 import fs from 'fs';
-import path from 'path';
 import { hashPassword, verifyPassword } from './passwordUtils';
 import { generateToken } from './tokenUtils';
+import { serverConfig } from '../../serverConfig';
 
 export type Character = { name: string; class: string };
 type User = {
@@ -12,7 +12,7 @@ type User = {
     token?: string;
     tokenExpiresAt?: number; // timestamp (ms)
 };
-const USERS_FILE = path.join(__dirname, '../../gameData/users.json');
+const USERS_FILE = serverConfig.dbFiles.users;
 
 const TOKEN_LIFE_TIME = 24 * 60 * 60 * 1000;
 
@@ -110,5 +110,14 @@ export const UserManager = {
     exists(username: string): boolean {
         const users = loadUsers();
         return !!users[username];
+    },
+    findUsernameByEmail(email: string): string | null {
+        const users = loadUsers();
+        for (const username in users) {
+            if (users[username].email === email) {
+                return username;
+            }
+        }
+        return null;
     },
 };

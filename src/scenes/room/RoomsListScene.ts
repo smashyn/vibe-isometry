@@ -6,6 +6,8 @@ import { Modal } from '../../ui/Modal.js';
 import { Input } from '../../ui/Input.js';
 import { renderCenteredUI } from '../../utils/renderCenteredUI.js';
 import { setCookie } from '../../utils/cookie.js'; // Додайте цей імпорт, якщо ще не додано
+import { sceneManager } from '../../SceneManager.js';
+import { RoomDetailsScene } from './RoomDetailsScene.js';
 
 type Room = {
     id: string;
@@ -20,16 +22,14 @@ export class RoomsListScene implements Scene {
     private rooms: Room[] = [];
     private joinButtons: Button[] = [];
     private error: string = '';
-    private onJoinRoom: (roomId: string) => void;
     private modal: Modal;
     private createRoomButton: Button;
     private roomNameInput: Input;
     private modalCreateButton: Button;
     private quitButton: Button; // Додаємо поле
 
-    constructor(gameSocket: GameSocket, onJoinRoom: (roomId: string) => void) {
-        this.gameSocket = gameSocket;
-        this.onJoinRoom = onJoinRoom;
+    constructor() {
+        this.gameSocket = sceneManager.gameSocket;
 
         this.createRoomButton = new Button(
             'Створити кімнату',
@@ -115,7 +115,7 @@ export class RoomsListScene implements Scene {
             drawText(ctx, room.name, 100, y + 20, '20px Arial', '#fff');
             const btn = new Button(
                 'Join',
-                () => this.joinRoom(room.id),
+                () => this.joinRoom(room),
                 () => this.isActive,
             );
             btn.render(ctx, width - 340, y);
@@ -148,9 +148,13 @@ export class RoomsListScene implements Scene {
         }
     };
 
-    private joinRoom(roomId: string) {
-        this.gameSocket.send({ type: 'join_room', id: roomId });
-        this.onJoinRoom(roomId);
+    private joinRoom(room: Room) {
+        this.gameSocket.send({ type: 'join_room', id: room.id });
+        sceneManager.engine.setScene(
+            new RoomDetailsScene(room, () => {
+                sceneManager.engine.setScene(this);
+            }),
+        );
     }
 
     private handleClick = (e: MouseEvent) => {

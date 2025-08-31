@@ -10,6 +10,7 @@ import { handleEditRoom } from './handlers/handleEditRoom';
 import { handleDeleteRoom } from './handlers/handleDeleteRoom';
 import { handleJoinRoom } from './handlers/handleJoinRoom';
 import { handleLeaveRoom } from './handlers/handleLeaveRoom';
+import { handleAddChatMessage } from './handlers/handleAddChatMessage';
 import { RoomManager } from '../gameLogic/roomManager';
 
 // Зберігаємо всі підключення
@@ -55,7 +56,8 @@ export type WSClientMessage =
     | { type: 'edit_room'; id: string; name?: string }
     | { type: 'delete_room'; id: string }
     | { type: 'join_room'; id: string }
-    | { type: 'leave_room'; id: string };
+    | { type: 'leave_room'; id: string }
+    | { type: 'add_chat_message'; roomId: string; text: string }; // Додаємо тип
 
 export type WSServerMessage =
     | { type: 'id'; id: string }
@@ -69,7 +71,8 @@ export type WSServerMessage =
     | { type: 'room_edited'; id: string; name: string }
     | { type: 'room_deleted'; id: string }
     | { type: 'room_joined'; id: string; name: string }
-    | { type: 'room_left'; id: string };
+    | { type: 'room_left'; id: string }
+    | { type: 'chat_message'; roomId: string; sender: string; text: string; timestamp: number }; // Додаємо тип
 
 export type Room = {
     id: string;
@@ -133,6 +136,11 @@ export class WSMessageHandler {
             case 'leave_room':
                 handleLeaveRoom(this.send, data, this.ws.username);
                 broadcastRoomsList();
+                return;
+            case 'add_chat_message':
+                // Додаємо обробку додавання повідомлення до чату
+                handleAddChatMessage(this.send, data, this.ws.username);
+                // Можливо, тут можна зробити broadcast для всіх у кімнаті
                 return;
             default:
                 this.send({ type: 'error', message: 'Unknown message type' });

@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { Room } from './generateDungeon';
+import { serverConfig } from '../serverConfig';
 
-const MAPS_DIR = path.resolve(__dirname, 'gameData/maps');
+const MAPS_DIR = serverConfig.dbFiles.maps;
 
 export interface SavedMapData {
     map: any;

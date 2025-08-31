@@ -61,6 +61,14 @@ export class GameSocket {
         }
     }
 
+    getUsername() {
+        return this.username ?? '';
+    }
+
+    getToken() {
+        return this.token ?? '';
+    }
+
     onMessage(cb: GameSocketListener) {
         this.listeners.push(cb);
     }

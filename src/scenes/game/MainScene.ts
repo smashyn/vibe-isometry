@@ -4,7 +4,8 @@ import { GameField } from './GameField.js';
 import { TileTextures } from '../../tiles/TileTextures.js';
 import { PlayerNetworkClient } from '../../net/PlayerNetworkClient.js';
 import { OtherPlayersRenderer } from './OtherPlayersRenderer.js';
-import { GameSocket } from '../../net/GameSocket.js';
+import { CanvasContext } from '../../engine/CanvasContext.js';
+import { sceneManager } from '../../SceneManager.js';
 
 export class MainScene implements Scene {
     private showGrid = false;
@@ -32,14 +33,14 @@ export class MainScene implements Scene {
     // Додайте поле для збереження колбеку повернення
     private onBackToLobby: (() => void) | undefined;
 
-    constructor(gameSocket: GameSocket, mapName: string, onBackToLobby?: () => void) {
+    constructor(mapName: string, onBackToLobby?: () => void) {
         this.textures = new TileTextures();
         this.onBackToLobby = onBackToLobby;
 
         // Очищення канваса при створенні MainScene
-        const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
+        const canvas = CanvasContext.getInstance();
         if (canvas) {
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.canvas.getContext('2d');
             if (ctx) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
@@ -88,7 +89,7 @@ export class MainScene implements Scene {
 
         // --- Використання PlayerNetworkClient з GameSocket ---
         this.net = new PlayerNetworkClient(
-            gameSocket,
+            sceneManager.gameSocket,
             () => {},
             this.player.x,
             this.player.y,
@@ -112,7 +113,7 @@ export class MainScene implements Scene {
 
         this.otherPlayersRenderer = new OtherPlayersRenderer(this.tileWidth, this.tileHeight);
 
-        gameSocket.send({ type: 'load_map', name: mapName });
+        sceneManager.gameSocket.send({ type: 'load_map', name: mapName });
     }
 
     private onKeyDown = (e: KeyboardEvent) => {

@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import path from 'path';
 dotenv.config();
 
 export const serverConfig = {
@@ -15,4 +16,9 @@ export const serverConfig = {
         ? Number(process.env.GRACEFUL_SHUTDOWN_TIMEOUT)
         : 5000, // ms
     hashSalt: process.env.HASH_SALT || 'default_salt',
+    dbFiles: {
+        users: path.join(__dirname, './gameData/users.json'),
+        rooms: path.join(__dirname, './gameData/rooms.json'),
+        maps: path.join(__dirname, './gameData/maps'),
+    },
 };

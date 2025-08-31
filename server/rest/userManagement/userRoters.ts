@@ -17,7 +17,7 @@ export function handleUserRoutes(req: any, res: any): boolean {
         loginHandler(req, res);
         return true;
     }
-    if (isRoute(req, 'POST', '/api/reset-password')) {
+    if (isRoute(req, 'POST', '/api/restore-password')) {
         resetPasswordHandler(req, res);
         return true;
     }

@@ -5,9 +5,9 @@ import { Input } from '../../ui/Input.js';
 import { setCookie, getCookie } from '../../utils/cookie.js';
 import { apiFetch } from '../../utils/apiFetch.js';
 import { CanvasContext } from '../../engine/CanvasContext.js';
-import { drawText } from '../../utils/drawText.js';
-import { drawError } from '../../utils/drawError.js';
 import { renderCenteredUI } from '../../utils/renderCenteredUI';
+import { sceneManager } from '../../SceneManager.js';
+import { MainScene } from '../game/MainScene.js';
 
 export class LoginScene implements Scene {
     private onLoginSuccess: (username: string, token: string) => void;
@@ -63,10 +63,15 @@ export class LoginScene implements Scene {
 
         // Автоматичний логін по токену з кукі
         const token = getCookie('token');
+        const room = getCookie('room');
         if (token) {
             apiFetch(`${apiBasePath}/verify`, { method: 'POST' }, { token }).then((data) => {
                 if (data.success && data.username) {
-                    this.onLoginSuccess(data.username, token);
+                    if (room) {
+                        sceneManager.setScene(new MainScene('map_1756288095176'));
+                    } else {
+                        this.onLoginSuccess(data.username, token);
+                    }
                 }
             });
         }
