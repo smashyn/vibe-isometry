@@ -1,4 +1,4 @@
-# Vibe Isometric
+# Vibe Isometry
 
 ## From dev
 
