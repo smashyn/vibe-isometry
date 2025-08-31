@@ -5,6 +5,7 @@ import { GameSocket } from '../../net/GameSocket.js';
 import { Modal } from '../../ui/Modal.js';
 import { Input } from '../../ui/Input.js';
 import { renderCenteredUI } from '../../utils/renderCenteredUI.js';
+import { setCookie } from '../../utils/cookie.js'; // Додайте цей імпорт, якщо ще не додано
 
 type Room = {
     id: string;
@@ -24,6 +25,7 @@ export class RoomsListScene implements Scene {
     private createRoomButton: Button;
     private roomNameInput: Input;
     private modalCreateButton: Button;
+    private quitButton: Button; // Додаємо поле
 
     constructor(gameSocket: GameSocket, onJoinRoom: (roomId: string) => void) {
         this.gameSocket = gameSocket;
@@ -33,6 +35,17 @@ export class RoomsListScene implements Scene {
             'Створити кімнату',
             () => this.openCreateRoomModal(),
             () => this.isActive,
+        );
+
+        // Додаємо кнопку Quit
+        this.quitButton = new Button(
+            'Quit',
+            () => {
+                setCookie('token', '', -1); // Видалити токен
+                window.location.reload(); // Перезавантажити сторінку або зробити іншу дію
+            },
+            () => this.isActive,
+            { width: 120, height: 40, fillColor: '#d32f2f', fillColorHovered: '#b71c1c' },
         );
 
         // Інпут для назви кімнати в модалці
@@ -64,6 +77,7 @@ export class RoomsListScene implements Scene {
         this.gameSocket.onMessage(this.handleWSMessage);
         this.requestRooms();
         this.createRoomButton.onActivate();
+        this.quitButton.onActivate(); // Додаємо активацію
         window.addEventListener('click', this.handleClick);
         window.addEventListener('keydown', this.handleKeyDown);
     }
@@ -72,6 +86,7 @@ export class RoomsListScene implements Scene {
         this.isActive = false;
         this.joinButtons.forEach((btn) => btn.onDeactivate());
         this.createRoomButton.onDeactivate();
+        this.quitButton.onDeactivate(); // Додаємо деактивацію
         window.removeEventListener('click', this.handleClick);
         window.removeEventListener('keydown', this.handleKeyDown);
     }
@@ -86,6 +101,9 @@ export class RoomsListScene implements Scene {
         drawText(ctx, 'Список кімнат', width / 2, 60, 'bold 32px Arial', '#fff');
 
         this.createRoomButton.render(ctx, 40, 40);
+
+        // Рендеримо кнопку Quit у правому верхньому куті
+        this.quitButton.render(ctx, width - this.quitButton.width - 40, 40);
 
         if (this.error) {
             drawText(ctx, this.error, width / 2, 100, '16px Arial', '#d32f2f');
@@ -159,6 +177,12 @@ export class RoomsListScene implements Scene {
         // Кнопка створення кімнати
         if (this.createRoomButton.contains(x, y)) {
             this.createRoomButton.onClick();
+            return;
+        }
+
+        // Кнопка Quit
+        if (this.quitButton.contains(x, y)) {
+            this.quitButton.onClick();
             return;
         }
 
