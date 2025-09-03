@@ -208,7 +208,7 @@ export class LoginScene implements Scene {
             return;
         }
         this.loginButton.disabled = true;
-        apiFetch(`${apiBasePath}/login`, { method: 'POST' }, { username, password })
+        apiFetch(`/login`, { method: 'POST' }, { username, password })
             .then((data) => {
                 this.loginButton.disabled = false;
                 if (data.success && data.token) {

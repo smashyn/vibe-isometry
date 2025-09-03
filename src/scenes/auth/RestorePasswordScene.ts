@@ -140,7 +140,7 @@ export class RestorePasswordScene implements Scene {
         this.error = '';
         this.info = '';
         this.restoreButton.disabled = true;
-        apiFetch(`${apiBasePath}/restore-password`, { method: 'POST' }, { email })
+        apiFetch(`/restore-password`, { method: 'POST' }, { email })
             .then((data) => {
                 this.restoreButton.disabled = false;
                 if (data.success) {

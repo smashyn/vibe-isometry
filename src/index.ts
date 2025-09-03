@@ -3,6 +3,8 @@ import { LoginScene } from './scenes/auth/LoginScene.js';
 import { RegisterScene } from './scenes/auth/RegisterScene.js';
 import { RestorePasswordScene } from './scenes/auth/RestorePasswordScene.js';
 import { RoomsListScene } from './scenes/room/RoomsListScene.js';
+import { RestorePasswordConfirmScene } from './scenes/auth/RestorePasswordConfirmScene.js'; // додати імпорт
+import { getQueryParam, removeQueryParam } from './utils/queryParams.js';
 
 let loginScene: LoginScene = new LoginScene(onLoginSuccess, goToRegister, goToRestoreScene);
 const registerScene: RegisterScene = new RegisterScene(onRegisterSuccess, goToLogin);
@@ -37,5 +39,16 @@ function onRegisterSuccess(username: string, password: string) {
     sceneManager.setScene(loginScene);
 }
 
-// default scene activation
-sceneManager.setScene(loginScene);
+// --- Додаємо перевірку restoreToken у query ---
+const restoreToken = getQueryParam('restoreToken');
+if (restoreToken) {
+    removeQueryParam('restoreToken'); // Видаляємо токен з адресного рядка
+    sceneManager.setScene(
+        new RestorePasswordConfirmScene(restoreToken, () => {
+            sceneManager.setScene(loginScene);
+        }),
+    );
+} else {
+    // default scene activation
+    sceneManager.setScene(loginScene);
+}

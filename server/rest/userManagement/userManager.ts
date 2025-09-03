@@ -6,11 +6,13 @@ import { serverConfig } from '../../serverConfig';
 export type Character = { name: string; class: string };
 type User = {
     username: string;
-    password: string; // зберігається хеш
+    password: string;
     email: string;
     characters?: Character[];
     token?: string;
-    tokenExpiresAt?: number; // timestamp (ms)
+    tokenExpiresAt?: number;
+    restoreToken?: string;
+    restoreTokenExpiresAt?: number;
 };
 const USERS_FILE = serverConfig.dbFiles.users;
 
@@ -46,12 +48,6 @@ export const UserManager = {
     authenticate(username: string, password: string): { success: boolean; token?: string } {
         const users = loadUsers();
         const user = users[username];
-
-        console.log(
-            'user',
-            user && verifyPassword(password, user.password) === true,
-            verifyPassword(password, user.password),
-        );
 
         if (user && verifyPassword(password, user.password) === true) {
             // Видаємо новий токен при кожному логіні
@@ -119,5 +115,38 @@ export const UserManager = {
             }
         }
         return null;
+    },
+    // Зберігайте restoreToken і restoreTokenExpiresAt у User
+    issueRestoreToken(username: string, ttlMs: number = 3600000): string | null {
+        const users = loadUsers();
+        const user = users[username];
+        if (!user) return null;
+        const token = generateToken();
+        user.restoreToken = token;
+        user.restoreTokenExpiresAt = Date.now() + ttlMs;
+        saveUsers(users);
+        return token;
+    },
+    validateRestoreToken(token: string): string | null {
+        const users = loadUsers();
+        for (const username in users) {
+            const user = users[username];
+            if (
+                user.restoreToken === token &&
+                user.restoreTokenExpiresAt &&
+                user.restoreTokenExpiresAt > Date.now()
+            ) {
+                return username;
+            }
+        }
+        return null;
+    },
+    clearRestoreToken(username: string): void {
+        const users = loadUsers();
+        if (users[username]) {
+            delete users[username].restoreToken;
+            delete users[username].restoreTokenExpiresAt;
+            saveUsers(users);
+        }
     },
 };

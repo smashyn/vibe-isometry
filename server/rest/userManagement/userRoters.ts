@@ -7,6 +7,7 @@ import { deleteCharacterHandler } from './handlers/deleteCharacterHandler';
 import { verifyTokenHandler } from './handlers/verifyTokenHandler'; // Додаємо імпорт
 import { isRoute } from '../../utils/rest';
 import { authMiddleware } from './middleware/authMiddleware';
+import { confirmResetPasswordHandler } from './handlers/confirmResetPasswordHandler';
 
 export function handleUserRoutes(req: any, res: any): boolean {
     if (isRoute(req, 'POST', '/api/register')) {
@@ -19,6 +20,10 @@ export function handleUserRoutes(req: any, res: any): boolean {
     }
     if (isRoute(req, 'POST', '/api/restore-password')) {
         resetPasswordHandler(req, res);
+        return true;
+    }
+    if (isRoute(req, 'POST', '/api/confirm-reset-password')) {
+        confirmResetPasswordHandler(req, res);
         return true;
     }
     if (isRoute(req, 'POST', '/api/verify')) {

@@ -185,7 +185,7 @@ export class RegisterScene implements Scene {
             return;
         }
         this.registerButton.disabled = true;
-        apiFetch(`${apiBasePath}/register`, { method: 'POST' }, { username, email, password })
+        apiFetch(`/register`, { method: 'POST' }, { username, email, password })
             .then((data) => {
                 if (data === true || data.success) {
                     this.onDeactivate();

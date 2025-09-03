@@ -9,7 +9,6 @@ async function sendRestoreEmail(email: string, restoreLink: string) {
 }
 
 export function resetPasswordHandler(req: any, res: any): void {
-    console.log('[RESET-PASSWORD] Запит на скидання пароля');
     let body = '';
     req.on('data', (chunk: any) => {
         body += chunk;
@@ -31,11 +30,9 @@ export function resetPasswordHandler(req: any, res: any): void {
                 res.end(JSON.stringify({ error: 'User not found' }));
                 return;
             }
-            // Згенерувати токен для відновлення (наприклад, на 1 годину)
-            const restoreToken = UserManager.issueToken(username, 60 * 60 * 1000);
-            // temporary change to Test
-            UserManager.resetPassword(username, 'Test');
-            const restoreLink = `https://your-domain.com/restore-password?token=${restoreToken}`;
+            // Згенерувати токен для відновлення (1 година)
+            const restoreToken = UserManager.issueRestoreToken(username, 60 * 60 * 1000);
+            const restoreLink = `http://localhost:5000/?restoreToken=${restoreToken}`;
             sendRestoreEmail(email, restoreLink);
 
             logger.info(`[RESET-PASSWORD] Інструкція надіслана на ${email}`);
