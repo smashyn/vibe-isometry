@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Room } from './generateDungeon';
+import { Room } from './mapGenerator/generateDungeon';
 import { serverConfig } from '../serverConfig';
 
 const MAPS_DIR = serverConfig.dbFiles.maps;

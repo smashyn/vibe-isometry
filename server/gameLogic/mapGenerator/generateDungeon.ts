@@ -1,6 +1,6 @@
 export type TileType = 'earth' | 'grass' | 'stone';
 
-import { MapStorage } from './mapStorage';
+import { MapStorage } from '../mapStorage';
 
 export interface Room {
     x: number; // left

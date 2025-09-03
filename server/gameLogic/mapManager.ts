@@ -1,5 +1,5 @@
 import { MapStorage, SavedMapData } from './mapStorage';
-import { generateDungeonWithSeed } from './generateDungeon';
+import { generateDungeonWithSeed } from './mapGenerator/generateDungeon';
 
 export const MapManager = {
     /**
