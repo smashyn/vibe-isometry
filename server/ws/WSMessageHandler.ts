@@ -26,18 +26,6 @@ export function broadcastRoomsList() {
 }
 
 export type WSClientMessage =
-    | { type: 'list_maps' }
-    | {
-          type: 'generate_map';
-          name: string;
-          width: number;
-          height: number;
-          roomCount: number;
-          minRoomSize: number;
-          maxRoomSize: number;
-          seed: number;
-      }
-    | { type: 'load_map'; name: string }
     | {
           type: 'move';
           x: number;
@@ -57,12 +45,12 @@ export type WSClientMessage =
     | { type: 'delete_room'; id: string }
     | { type: 'join_room'; id: string }
     | { type: 'leave_room'; id: string }
-    | { type: 'add_chat_message'; roomId: string; text: string }; // Додаємо тип
+    | { type: 'add_chat_message'; roomId: string; text: string } // Додаємо тип
+    | { type: 'request_section'; roomId: string; actIndex: number; sectionIndex: number } // Додаємо новий тип повідомлення для запиту секції з актом і секцією
+    | { type: 'start_game'; roomId: string }; // Додаємо тип повідомлення для старту гри
 
 export type WSServerMessage =
     | { type: 'id'; id: string }
-    | { type: 'maps_list'; maps: string[] }
-    | { type: 'map_generated'; name: string }
     | { type: 'map'; width: number; height: number; map: any; rooms: any; seed?: number }
     | { type: 'players'; players: any[] }
     | { type: 'error'; message: string }
@@ -72,7 +60,9 @@ export type WSServerMessage =
     | { type: 'room_deleted'; id: string }
     | { type: 'room_joined'; id: string; name: string }
     | { type: 'room_left'; id: string }
-    | { type: 'chat_message'; roomId: string; sender: string; text: string; timestamp: number }; // Додаємо тип
+    | { type: 'chat_message'; roomId: string; sender: string; text: string; timestamp: number } // Додаємо тип
+    | { type: 'section'; actIndex: number; sectionIndex: number; section: any } // Додаємо тип відповіді для секції
+    | { type: 'game_started'; roomId: string }; // Додаємо тип повідомлення для старту гри
 
 export type Room = {
     id: string;
@@ -99,15 +89,6 @@ export class WSMessageHandler {
 
     handle(data: WSClientMessage) {
         switch (data.type) {
-            case 'list_maps':
-                handleListMaps(this.send);
-                return;
-            case 'generate_map':
-                handleGenerateMap(this.send, data);
-                return;
-            case 'load_map':
-                handleLoadMap(this.send, data);
-                return;
             case 'move':
                 handleMove(this.playerId, data);
                 return;
@@ -142,6 +123,46 @@ export class WSMessageHandler {
                 handleAddChatMessage(this.send, data, this.ws.username);
                 // Можливо, тут можна зробити broadcast для всіх у кімнаті
                 return;
+            case 'request_section': {
+                const room = RoomManager.getRoom(data.roomId);
+                if (!room || !room.map || !room.map.acts) {
+                    this.send({ type: 'error', message: 'Room or map not found' });
+                    return;
+                }
+                const act = room.map.acts[data.actIndex];
+                if (!act || !act.sections) {
+                    this.send({ type: 'error', message: 'Act not found' });
+                    return;
+                }
+                const section = act.sections[data.sectionIndex];
+                if (!section) {
+                    this.send({ type: 'error', message: 'Section not found' });
+                    return;
+                }
+                this.send({
+                    type: 'section',
+                    actIndex: data.actIndex,
+                    sectionIndex: data.sectionIndex,
+                    section,
+                });
+                return;
+            }
+            case 'start_game': {
+                const room = RoomManager.getRoom(data.roomId);
+                if (!room) {
+                    this.send({ type: 'error', message: 'Room not found' });
+                    return;
+                }
+                // Міняємо статус кімнати на GAME
+                RoomManager.setRoomStatus(data.roomId, this.ws.username, 'GAME');
+                // Бродкаст усім гравцям у кімнаті
+                for (const ws of allClients) {
+                    try {
+                        ws.send(JSON.stringify({ type: 'game_started', roomId: data.roomId }));
+                    } catch {}
+                }
+                return;
+            }
             default:
                 this.send({ type: 'error', message: 'Unknown message type' });
                 log('[ERROR] Unknown message type:', data);

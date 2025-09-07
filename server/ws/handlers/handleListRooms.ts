@@ -14,6 +14,7 @@ export function handleListRooms(send: any) {
     const roomsWithUserCount = rooms.map((room) => ({
         ...room,
         playerManager: undefined,
+        map: undefined,
         userCount: roomUserCounts[room.id] || 0,
     }));
     send({ type: 'rooms_list', rooms: roomsWithUserCount });

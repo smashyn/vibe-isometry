@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { PlayerManager as PlayerManagerClass } from './playerManager';
 import fs from 'fs';
 import { serverConfig } from '../serverConfig';
+import { createAct } from './mapGenerator/generateActWithSections';
+import { Act } from './mapGenerator/types';
 
 export type RoomStatus = 'ACTIVE' | 'GAME' | 'INACTIVE';
 
@@ -18,7 +20,12 @@ export type Room = {
     players: string[];
     status: RoomStatus;
     playerManager: InstanceType<typeof PlayerManagerClass>;
-    chat: ChatMessage[]; // додано чат
+    chat: ChatMessage[];
+    map: MapConfig;
+};
+
+export type MapConfig = {
+    acts: Act[];
 };
 
 const ROOMS_FILE = serverConfig.dbFiles.rooms;
@@ -64,7 +71,15 @@ export const RoomManager = {
             players: [admin],
             status: 'ACTIVE',
             playerManager,
-            chat: [], // ініціалізуємо чат
+            chat: [],
+            map: {
+                acts: [
+                    createAct('Пошук артефакта', 'find_artifact', [
+                        { name: 'Ліс', roomsCount: 40 },
+                        { name: 'Болото', roomsCount: 40 },
+                    ]),
+                ],
+            },
         };
         rooms[id] = room;
         room.playerManager.addUser(admin);
