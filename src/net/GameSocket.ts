@@ -17,7 +17,7 @@ export class GameSocket {
         this.token = getCookie('token') ?? null;
 
         if (!this.username) {
-            apiFetch(`${apiBasePath}/verify`, { method: 'POST' }, { token: this.token })
+            apiFetch(`/verify`, { method: 'POST' }, { token: this.token })
                 .then((data) => {
                     this.username = data.username;
                 })

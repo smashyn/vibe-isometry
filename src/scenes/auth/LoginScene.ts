@@ -1,5 +1,4 @@
 import { Scene } from '../Scene.js';
-import { apiBasePath } from '../../config/apiConfig.js';
 import { Button } from '../../ui/Button.js';
 import { Input } from '../../ui/Input.js';
 import { setCookie, getCookie } from '../../utils/cookie.js';
@@ -7,7 +6,6 @@ import { apiFetch } from '../../utils/apiFetch.js';
 import { CanvasContext } from '../../engine/CanvasContext.js';
 import { renderCenteredUI } from '../../utils/renderCenteredUI';
 import { sceneManager } from '../../SceneManager.js';
-import { MainScene } from '../game/MainScene.js';
 
 export class LoginScene implements Scene {
     private onLoginSuccess: (username: string, token: string) => void;
@@ -24,7 +22,7 @@ export class LoginScene implements Scene {
     public isActive = true;
 
     constructor(
-        onLoginSuccess: (username: string, token: string) => void,
+        onLoginSuccess: () => void,
         onRegister: () => void,
         onRestore: () => void,
         username: string = '',
@@ -65,10 +63,10 @@ export class LoginScene implements Scene {
         const token = getCookie('token');
         const room = getCookie('room');
         if (token) {
-            apiFetch(`${apiBasePath}/verify`, { method: 'POST' }, { token }).then((data) => {
+            apiFetch(`/verify`, { method: 'POST' }, { token }).then((data) => {
                 if (data.success && data.username) {
                     if (room) {
-                        sceneManager.setScene(new MainScene('map_1756288095176'));
+                        // sceneManager.setScene(new MainScene('map_1756288095176'));
                     } else {
                         this.onLoginSuccess(data.username, token);
                     }
@@ -213,6 +211,7 @@ export class LoginScene implements Scene {
                 this.loginButton.disabled = false;
                 if (data.success && data.token) {
                     setCookie('token', data.token, 365);
+                    (sceneManager.gameSocket as any).token = data.token;
                     this.onLoginSuccess(username, data.token);
                 } else {
                     this.error = data.error || 'Невірний логін або пароль';

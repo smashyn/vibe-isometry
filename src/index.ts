@@ -3,7 +3,7 @@ import { LoginScene } from './scenes/auth/LoginScene.js';
 import { RegisterScene } from './scenes/auth/RegisterScene.js';
 import { RestorePasswordScene } from './scenes/auth/RestorePasswordScene.js';
 import { RoomsListScene } from './scenes/room/RoomsListScene.js';
-import { RestorePasswordConfirmScene } from './scenes/auth/RestorePasswordConfirmScene.js'; // додати імпорт
+import { RestorePasswordConfirmScene } from './scenes/auth/RestorePasswordConfirmScene.js';
 import { getQueryParam, removeQueryParam } from './utils/queryParams.js';
 
 let loginScene: LoginScene = new LoginScene(onLoginSuccess, goToRegister, goToRestoreScene);
@@ -25,8 +25,7 @@ function goToRestoreScene() {
 }
 
 // on success handlers
-function onLoginSuccess(username: string, token: string) {
-    (sceneManager.gameSocket as any).token = token;
+function onLoginSuccess() {
     sceneManager.setScene(roomsListScene);
 }
 
@@ -42,7 +41,7 @@ function onRegisterSuccess(username: string, password: string) {
 // --- Додаємо перевірку restoreToken у query ---
 const restoreToken = getQueryParam('restoreToken');
 if (restoreToken) {
-    removeQueryParam('restoreToken'); // Видаляємо токен з адресного рядка
+    removeQueryParam('restoreToken');
     sceneManager.setScene(
         new RestorePasswordConfirmScene(restoreToken, () => {
             sceneManager.setScene(loginScene);

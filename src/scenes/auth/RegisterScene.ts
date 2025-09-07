@@ -1,10 +1,7 @@
 import { Scene } from '../Scene.js';
-import { apiBasePath } from '../../config/apiConfig.js';
-import { drawText } from '../../utils/drawText.js';
 import { Input } from '../../ui/Input.js';
 import { Button } from '../../ui/Button.js';
 import { CanvasContext } from '../../engine/CanvasContext.js';
-import { drawError } from '../../utils/drawError.js';
 import { apiFetch } from '../../utils/apiFetch.js';
 import { renderCenteredUI } from '../../utils/renderCenteredUI.js';
 

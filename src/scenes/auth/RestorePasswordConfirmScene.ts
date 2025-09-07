@@ -2,7 +2,6 @@ import { Scene } from '../Scene.js';
 import { Button } from '../../ui/Button.js';
 import { Input } from '../../ui/Input.js';
 import { drawText } from '../../utils/drawText.js';
-import { sceneManager } from '../../SceneManager.js';
 import { apiFetch } from '../../utils/apiFetch.js';
 
 export class RestorePasswordConfirmScene implements Scene {
