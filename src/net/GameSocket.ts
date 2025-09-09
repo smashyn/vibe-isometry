@@ -1,4 +1,3 @@
-import { apiBasePath } from '../config/apiConfig.js';
 import { getCookie } from '../utils/cookie.js';
 import { apiFetch } from '../utils/apiFetch.js';
 
@@ -10,6 +9,7 @@ export class GameSocket {
     private token: string | null = null;
     private username: string | null = null;
     private url: string;
+    private typeListeners: Map<string, GameSocketListener[]> = new Map();
 
     constructor(url: string) {
         this.url = url;
@@ -31,6 +31,9 @@ export class GameSocket {
             try {
                 const data = JSON.parse(event.data);
                 this.listeners.forEach((cb) => cb(data));
+                if (data.type && this.typeListeners.has(data.type)) {
+                    this.typeListeners.get(data.type)!.forEach((cb) => cb(data));
+                }
             } catch {
                 // ignore
             }
@@ -71,5 +74,12 @@ export class GameSocket {
 
     onMessage(cb: GameSocketListener) {
         this.listeners.push(cb);
+    }
+
+    onType(type: string, cb: GameSocketListener) {
+        if (!this.typeListeners.has(type)) {
+            this.typeListeners.set(type, []);
+        }
+        this.typeListeners.get(type)!.push(cb);
     }
 }

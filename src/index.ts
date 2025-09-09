@@ -5,6 +5,8 @@ import { RestorePasswordScene } from './scenes/auth/RestorePasswordScene.js';
 import { RoomsListScene } from './scenes/room/RoomsListScene.js';
 import { RestorePasswordConfirmScene } from './scenes/auth/RestorePasswordConfirmScene.js';
 import { getQueryParam, removeQueryParam } from './utils/queryParams.js';
+import { RoomDetailsScene } from './scenes/room/RoomDetailsScene.js';
+import { MainScene } from './scenes/game/MainScene.js';
 
 let loginScene: LoginScene = new LoginScene(onLoginSuccess, goToRegister, goToRestoreScene);
 const registerScene: RegisterScene = new RegisterScene(onRegisterSuccess, goToLogin);
@@ -51,3 +53,29 @@ if (restoreToken) {
     // default scene activation
     sceneManager.setScene(loginScene);
 }
+
+// rules
+
+sceneManager.gameSocket.onType('error', (data) => {
+    console.error('WebSocket error:', data.message);
+});
+sceneManager.gameSocket.onType('room', (data) => {
+    console.log('WebSocket room event:', data);
+
+    if (data.room.status === 'GAME') {
+        // Якщо гра вже почалася, можна одразу перейти в MainScene
+        sceneManager.engine.setScene(
+            new MainScene(sceneManager.gameSocket.getUsername(), data.room.id),
+        );
+        return;
+    }
+    sceneManager.engine.setScene(
+        new RoomDetailsScene(data.room, () => {
+            sceneManager.engine.setScene(roomsListScene);
+        }),
+    );
+});
+
+sceneManager.gameSocket.onType('game_started', (data) => {
+    console.log('Game started in room:', data.roomId);
+});

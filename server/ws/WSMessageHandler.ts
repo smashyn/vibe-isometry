@@ -47,7 +47,8 @@ export type WSClientMessage =
     | { type: 'leave_room'; id: string }
     | { type: 'add_chat_message'; roomId: string; text: string } // Додаємо тип
     | { type: 'request_section'; roomId: string; actIndex: number; sectionIndex: number } // Додаємо новий тип повідомлення для запиту секції з актом і секцією
-    | { type: 'start_game'; roomId: string }; // Додаємо тип повідомлення для старту гри
+    | { type: 'start_game'; roomId: string } // Додаємо тип повідомлення для старту гри
+    | { type: 'get_room'; roomId: string }; // Додаємо тип повідомлення для отримання кімнати
 
 export type WSServerMessage =
     | { type: 'id'; id: string }
@@ -62,7 +63,8 @@ export type WSServerMessage =
     | { type: 'room_left'; id: string }
     | { type: 'chat_message'; roomId: string; sender: string; text: string; timestamp: number } // Додаємо тип
     | { type: 'section'; actIndex: number; sectionIndex: number; section: any } // Додаємо тип відповіді для секції
-    | { type: 'game_started'; roomId: string }; // Додаємо тип повідомлення для старту гри
+    | { type: 'game_started'; roomId: string } // Додаємо тип повідомлення для старту гри
+    | { type: 'room'; room: any }; // Додаємо тип відповіді для отриманої кімнати
 
 export type Room = {
     id: string;
@@ -129,20 +131,23 @@ export class WSMessageHandler {
                     this.send({ type: 'error', message: 'Room or map not found' });
                     return;
                 }
-                const act = room.map.acts[data.actIndex];
+                const actIndex = typeof data.actIndex === 'number' ? data.actIndex : 0;
+                const sectionIndex = typeof data.sectionIndex === 'number' ? data.sectionIndex : 0;
+
+                const act = room.map.acts[actIndex];
                 if (!act || !act.sections) {
                     this.send({ type: 'error', message: 'Act not found' });
                     return;
                 }
-                const section = act.sections[data.sectionIndex];
+                const section = act.sections[sectionIndex];
                 if (!section) {
                     this.send({ type: 'error', message: 'Section not found' });
                     return;
                 }
                 this.send({
                     type: 'section',
-                    actIndex: data.actIndex,
-                    sectionIndex: data.sectionIndex,
+                    actIndex,
+                    sectionIndex,
                     section,
                 });
                 return;
@@ -153,14 +158,21 @@ export class WSMessageHandler {
                     this.send({ type: 'error', message: 'Room not found' });
                     return;
                 }
-                // Міняємо статус кімнати на GAME
                 RoomManager.setRoomStatus(data.roomId, this.ws.username, 'GAME');
-                // Бродкаст усім гравцям у кімнаті
                 for (const ws of allClients) {
                     try {
                         ws.send(JSON.stringify({ type: 'game_started', roomId: data.roomId }));
                     } catch {}
                 }
+                return;
+            }
+            case 'get_room': {
+                const room = RoomManager.getRoom(data.roomId);
+                if (!room) {
+                    this.send({ type: 'error', message: 'Room not found' });
+                    return;
+                }
+                this.send({ type: 'room', room: { ...room, map: undefined } });
                 return;
             }
             default:

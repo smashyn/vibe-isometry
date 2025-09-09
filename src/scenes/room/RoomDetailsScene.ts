@@ -4,7 +4,7 @@ import { drawText } from '../../utils/drawText.js';
 import { GameSocket } from '../../net/GameSocket.js';
 import { Input } from '../../ui/Input.js';
 import { sceneManager } from '../../SceneManager.js';
-import { MainScene } from '../../scenes/game/MainScene.js';
+import { MainScene } from '../game/MainSceneOld.js';
 import { setCookie } from '../../utils/cookie.js';
 
 type ChatMessage = {
@@ -37,7 +37,6 @@ export class RoomDetailsScene implements Scene {
         this.gameSocket = sceneManager.gameSocket;
         this.room = room;
 
-        console.log('room:', room);
         this.username = this.gameSocket.getUsername();
         this.onLeave = onLeave;
 
@@ -233,7 +232,7 @@ export class RoomDetailsScene implements Scene {
         // Тут можна надіслати повідомлення на сервер про старт гри, якщо потрібно
         // this.gameSocket.send({ type: 'start_game', roomId: this.room.id });
         // Перехід на MainScene через менеджер сцен
-        sceneManager.setScene(new MainScene('map_1756288095176')); // hardcoded map ID
+        sceneManager.gameSocket.send({ type: 'start_game', roomId: this.room.id });
         setCookie('room', this.room.id, 365); // Зберігаємо кімнату в куки на 1 день
     }
 }

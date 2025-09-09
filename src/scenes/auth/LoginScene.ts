@@ -6,6 +6,7 @@ import { apiFetch } from '../../utils/apiFetch.js';
 import { CanvasContext } from '../../engine/CanvasContext.js';
 import { renderCenteredUI } from '../../utils/renderCenteredUI';
 import { sceneManager } from '../../SceneManager.js';
+import { RoomDetailsScene } from '../room/RoomDetailsScene.js';
 
 export class LoginScene implements Scene {
     private onLoginSuccess: (username: string, token: string) => void;
@@ -66,7 +67,7 @@ export class LoginScene implements Scene {
             apiFetch(`/verify`, { method: 'POST' }, { token }).then((data) => {
                 if (data.success && data.username) {
                     if (room) {
-                        // sceneManager.setScene(new MainScene('map_1756288095176'));
+                        sceneManager.gameSocket.send({ type: 'get_room', roomId: room });
                     } else {
                         this.onLoginSuccess(data.username, token);
                     }
